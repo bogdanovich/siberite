@@ -1,0 +1,21 @@
+package controller
+
+import (
+	"errors"
+	"fmt"
+	"log"
+)
+
+// Command: flush_all
+// Response:
+// END
+func (self *Controller) FlushAll(input []string) error {
+	err := self.repo.FlushAllQueues()
+	if err != nil {
+		log.Printf("Can't flush all queues: %s", err.Error())
+		return errors.New("SERVER_ERROR " + err.Error())
+	}
+	fmt.Fprint(self.rw.Writer, "END\r\n")
+	self.rw.Writer.Flush()
+	return nil
+}
