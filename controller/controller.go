@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net"
 	"sync/atomic"
 
 	"github.com/bogdanovich/siberite/queue"
@@ -11,6 +12,7 @@ import (
 )
 
 type Controller struct {
+	conn           *net.TCPConn
 	rw             *bufio.ReadWriter
 	repo           *repository.QueueRepository
 	currentItem    *queue.Item
@@ -24,10 +26,11 @@ type Command struct {
 	DataSize   int
 }
 
-func NewSession(rw *bufio.ReadWriter, repo *repository.QueueRepository) *Controller {
+func NewSession(conn *net.TCPConn, repo *repository.QueueRepository) *Controller {
 	atomic.AddUint64(&repo.Stats.TotalConnections, 1)
 	atomic.AddUint64(&repo.Stats.CurrentConnections, 1)
-	return &Controller{rw, repo, nil, nil}
+	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	return &Controller{conn, rw, repo, nil, nil}
 }
 
 func (self *Controller) FinishSession() {
@@ -35,6 +38,10 @@ func (self *Controller) FinishSession() {
 		self.abort(self.currentCommand)
 	}
 	atomic.AddUint64(&self.repo.Stats.CurrentConnections, ^uint64(0))
+}
+
+func (self *Controller) ReadFirstMessage() (string, error) {
+	return self.rw.Reader.ReadString('\n')
 }
 
 func (self *Controller) setCurrentState(cmd *Command, item *queue.Item) {

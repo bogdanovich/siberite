@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -12,14 +13,22 @@ import (
 	service "github.com/bogdanovich/siberite/service"
 )
 
-var DataDir = flag.String("data", "./data", "Path to data directory")
-var HostAndPort = flag.String("listen", "0.0.0.0:22133", "IP and port to listen")
+var dataDir = flag.String("data", "./data", "path to data directory")
+var hostAndPort = flag.String("listen", "0.0.0.0:22133", "ip and port to listen")
+var versionFlag = flag.Bool("version", false, "prints current version")
 
 func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	laddr, err := net.ResolveTCPAddr("tcp", *HostAndPort)
+	service := service.New(*dataDir)
+
+	if *versionFlag {
+		fmt.Println(service.Version())
+		os.Exit(0)
+	}
+
+	laddr, err := net.ResolveTCPAddr("tcp", *hostAndPort)
 	if nil != err {
 		log.Fatalln(err)
 	}
@@ -29,8 +38,6 @@ func main() {
 	}
 	log.Println("listening on", listener.Addr())
 
-	// Make a new service and send it into the background.
-	service := service.New(*DataDir)
 	go service.Serve(listener)
 
 	// Handle SIGINT and SIGTERM.

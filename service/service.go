@@ -6,36 +6,42 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bogdanovich/siberite/controller"
 	"github.com/bogdanovich/siberite/repository"
-	"github.com/bogdanovich/siberite/router"
 )
 
 type Service struct {
 	dataDir string
+	repo    *repository.QueueRepository
 	ch      chan struct{}
 	wg      *sync.WaitGroup
 }
 
 func New(dataDir string) *Service {
-	s := &Service{dataDir, make(chan struct{}), &sync.WaitGroup{}}
+	s := &Service{
+		dataDir: dataDir,
+		repo:    &repository.QueueRepository{},
+		ch:      make(chan struct{}),
+		wg:      &sync.WaitGroup{},
+	}
 	s.wg.Add(1)
 	return s
 }
 
-func (s *Service) Serve(listener *net.TCPListener) {
-	defer s.wg.Done()
+func (self *Service) Serve(listener *net.TCPListener) {
+	defer self.wg.Done()
 
 	log.Println("initializing...")
-
-	repo, err := repository.Initialize(s.dataDir)
-	log.Println("data directory: ", s.dataDir)
+	var err error
+	self.repo, err = repository.Initialize(self.dataDir)
+	log.Println("data directory: ", self.dataDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for {
 		select {
-		case <-s.ch:
+		case <-self.ch:
 			log.Println("stopping listening on", listener.Addr())
 			listener.Close()
 			return
@@ -50,13 +56,42 @@ func (s *Service) Serve(listener *net.TCPListener) {
 			log.Println(err)
 		}
 		log.Println(conn.RemoteAddr(), "connected")
-		s.wg.Add(1)
-		go router.Dispatch(conn, repo, s.ch, s.wg)
+		self.wg.Add(1)
+		go self.HandleConnection(conn)
 	}
 }
 
-func (s *Service) Stop() {
+func (self *Service) Stop() {
 	log.Println("stopping server and finishing work...")
-	close(s.ch)
-	s.wg.Wait()
+	close(self.ch)
+	self.wg.Wait()
+}
+
+func (self *Service) HandleConnection(conn *net.TCPConn) {
+	defer conn.Close()
+	defer self.wg.Done()
+
+	controller := controller.NewSession(conn, self.repo)
+	defer controller.FinishSession()
+
+	for {
+		select {
+		case <-self.ch:
+			log.Println("Disconnecting", conn.RemoteAddr())
+			return
+		default:
+		}
+		err := controller.Dispatch()
+		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+			continue
+		}
+		if err != nil {
+			log.Println(conn.RemoteAddr(), err)
+			return
+		}
+	}
+}
+
+func (self *Service) Version() string {
+	return repository.Version
 }

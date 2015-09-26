@@ -12,7 +12,7 @@ import (
 	"github.com/streamrail/concurrent-map"
 )
 
-const version = "0.1.1"
+const Version = "siberite-0.2.1"
 
 type QueueRepository struct {
 	storage  cmap.ConcurrentMap
@@ -41,7 +41,7 @@ func Initialize(dataDir string) (*QueueRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	stats := &Stats{version, time.Now().Unix(), 0, 0, 0, 0}
+	stats := &Stats{Version, time.Now().Unix(), 0, 0, 0, 0}
 	repo := QueueRepository{cmap.New(), dataPath, stats}
 	return &repo, repo.initialize()
 }
