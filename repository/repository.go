@@ -137,6 +137,7 @@ func (self *QueueRepository) FullStats() []StatItem {
 	for pair := range self.storage.Iter() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
+		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})
 	}
 	return stats
 }

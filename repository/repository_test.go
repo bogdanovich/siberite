@@ -97,12 +97,24 @@ func Test_FullStats(t *testing.T) {
 
 	statItemKeys := []string{
 		"uptime", "time", "version", "curr_connections", "total_connections",
-		"cmd_get", "cmd_set", "queue_test2_items", "queue_test1_items",
+		"cmd_get", "cmd_set", "queue_test2_items", "queue_test2_open_transactions",
+		"queue_test1_items", "queue_test1_open_transactions",
 	}
 
 	for i, statItem := range repo.FullStats() {
 		if statItemKeys[i] != statItem.Key {
 			t.Error("Invalid stats output")
 		}
+	}
+}
+
+func Test_Count(t *testing.T) {
+	repo, _ := Initialize(dir)
+	defer repo.DeleteAllQueues()
+
+	repo.GetQueue("test1")
+	repo.GetQueue("test2")
+	if repo.Count() != 2 {
+		t.Error("Invalid count")
 	}
 }

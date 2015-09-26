@@ -184,6 +184,20 @@ func Test_Length(t *testing.T) {
 	}
 }
 
+func Test_AddOpenTransactions(t *testing.T) {
+	q, _ := Open(name, dir)
+	defer q.Drop()
+
+	q.AddOpenTransactions(1)
+	if q.Stats.OpenTransactions != 1 {
+		t.Error("invalid OpenTransactions value")
+	}
+	q.AddOpenTransactions(-1)
+	if q.Stats.OpenTransactions != 0 {
+		t.Error("invalid OpenTransactions value")
+	}
+}
+
 func Test_initialize(t *testing.T) {
 	q, _ := Open(name, dir)
 	defer q.Drop()

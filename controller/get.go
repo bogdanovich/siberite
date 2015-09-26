@@ -53,6 +53,7 @@ func (self *Controller) get(cmd *Command) error {
 	fmt.Fprint(self.rw.Writer, "END\r\n")
 	if cmd.SubCommand == "open" && len(item.Value) > 0 {
 		self.setCurrentState(cmd, item)
+		q.AddOpenTransactions(1)
 	}
 	self.rw.Writer.Flush()
 	atomic.AddUint64(&self.repo.Stats.CmdGet, 1)
@@ -60,7 +61,16 @@ func (self *Controller) get(cmd *Command) error {
 }
 
 func (self *Controller) getClose(cmd *Command) error {
-	self.setCurrentState(nil, nil)
+	q, err := self.repo.GetQueue(cmd.QueueName)
+	if err != nil {
+		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
+		return errors.New("SERVER_ERROR " + err.Error())
+	}
+	if self.currentItem != nil {
+		q.AddOpenTransactions(-1)
+		self.setCurrentState(nil, nil)
+	}
+
 	fmt.Fprint(self.rw.Writer, "END\r\n")
 	self.rw.Writer.Flush()
 	return nil
@@ -84,7 +94,10 @@ func (self *Controller) abort(cmd *Command) error {
 		if err != nil {
 			return errors.New("SERVER_ERROR " + err.Error())
 		}
-		self.setCurrentState(nil, nil)
+		if self.currentItem != nil {
+			q.AddOpenTransactions(-1)
+			self.setCurrentState(nil, nil)
+		}
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"sync"
+	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -15,10 +16,15 @@ type Queue struct {
 	sync.RWMutex
 	Name     string
 	DataDir  string
+	Stats    *Stats
 	head     uint64
 	tail     uint64
 	db       *leveldb.DB
 	isOpened bool
+}
+
+type Stats struct {
+	OpenTransactions int64
 }
 
 // Queue Item
@@ -30,7 +36,15 @@ type Item struct {
 
 // Create Queue and open leveldb database
 func Open(name string, dataDir string) (*Queue, error) {
-	q := &Queue{Name: name, DataDir: dataDir, db: &leveldb.DB{}, head: 0, tail: 0, isOpened: false}
+	q := &Queue{
+		Name:     name,
+		DataDir:  dataDir,
+		Stats:    &Stats{0},
+		db:       &leveldb.DB{},
+		head:     0,
+		tail:     0,
+		isOpened: false,
+	}
 	return q, q.open()
 }
 
@@ -114,6 +128,10 @@ func (self *Queue) Prepend(item *Item) error {
 		self.head -= 1
 	}
 	return err
+}
+
+func (self *Queue) AddOpenTransactions(value int64) {
+	atomic.AddInt64(&self.Stats.OpenTransactions, value)
 }
 
 func (self *Queue) open() error {
