@@ -24,43 +24,45 @@ rying ::1...
 Connected to localhost.
 Escape character is '^]'.
 
+set work 0 0 10
+1234567890
+STORED
+
+set work 0 0 2
+12
+STORED
+
+get work
+VALUE work 0 10
+1234567890
+END
+
+get work/open
+VALUE work 0 2
+12
+END
+
+get work/close
+END
+
 stats
-STAT uptime 38
-STAT time 1442903520
-STAT version 0.1.1
+STAT uptime 47
+STAT time 1443308758
+STAT version siberite-0.2.1
 STAT curr_connections 1
 STAT total_connections 1
-STAT cmd_get 0
-STAT cmd_set 0
-END
-
-set my_queue_name 0 0 10
-1234567890
-STORED
-
-set my_queue_name 0 0 2
-12
-STORED
-
-get my_queue_name
-VALUE my_queue_name 0 10
-1234567890
-END
-
-get my_queue_name/open
-VALUE my_queue_name 0 2
-12
-END
-
-get my_queue_name/close
+STAT cmd_get 2
+STAT cmd_set 2
+STAT queue_work_items 0
+STAT queue_work_open_transactions 0
 END
 
 # other commands:
-# get my_queue_name/peek
-# get my_queue_name/open
-# get my_queue_name/abort
-# flush my_queue_name
-# delete my_queue_name
+# get work/peek
+# get work/open
+# get work/abort
+# flush work
+# delete work
 # flush_all
 ```
 
@@ -72,7 +74,8 @@ protocol.
 
 ## Todo
 
-  - waiting a given time limit for a new item to arrive /t=<milliseconds>
-  - waiting for an item and open it GET work/t=500/open
   - close an exisitng item read and open a new one in one command GET work/close/open
 
+## Not supported
+
+  - waiting a given time limit for a new item to arrive /t=<milliseconds>

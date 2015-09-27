@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/bogdanovich/siberite/queue"
+	"github.com/stretchr/testify/assert"
 )
 
 var dir = "./test_data"
@@ -24,9 +25,7 @@ func TestMain(m *testing.M) {
 
 func Test_Initialize(t *testing.T) {
 	repo, err := Initialize(dir)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
 
 	// Create 3 queues and push some data
 	queueNames := []string{"test1", "test2", "test3"}
@@ -47,19 +46,15 @@ func Test_Initialize(t *testing.T) {
 
 	// Initialize repo again and check loaded queues
 	repo, err = Initialize(dir)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
 
-	if repo.Count() != 3 {
-		t.Errorf("Invalid repo count after initialization (%d instead of %d", repo.Count(), len(queueNames))
-	}
+	assert.Equal(t, repo.Count(), 3, "Invalid repo count after initialization")
 
 	for i := 0; i < len(queueNames); i++ {
 		q, _ = repo.GetQueue(queueNames[i])
-		if q.Head() != 1 || q.Tail() != uint64(totalItems) || q.Length() != uint64(totalItems-1) {
-			t.Errorf("Invalid queue initialization")
-		}
+		assert.Equal(t, q.Head(), uint64(1), "Invalid queue initialization")
+		assert.Equal(t, q.Tail(), uint64(totalItems), "Invalid queue initialization")
+		assert.Equal(t, q.Length(), uint64(totalItems-1), "Invalid queue initialization")
 	}
 	repo.DeleteAllQueues()
 }
@@ -68,24 +63,19 @@ func Test_DeleteQueue(t *testing.T) {
 	repo, err := Initialize(dir)
 	defer repo.DeleteAllQueues()
 
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
 
 	q, _ := repo.GetQueue(name)
 	queuePath := q.Path()
-	if _, err := os.Stat(queuePath); os.IsNotExist(err) {
-		t.Error("Queue data dir does not exist: ", err)
-	}
+
+	_, err = os.Stat(queuePath)
+	assert.Nil(t, err)
 
 	err = repo.DeleteQueue(name)
-	if err != nil {
-		t.Error("Delete queue error: ", err)
-	}
+	assert.Nil(t, err)
 
-	if _, err := os.Stat(queuePath); err == nil {
-		t.Error("Queue data should not exist")
-	}
+	_, err = os.Stat(queuePath)
+	assert.NotNil(t, err, "Queue data should not exist")
 }
 
 func Test_FullStats(t *testing.T) {
@@ -102,9 +92,7 @@ func Test_FullStats(t *testing.T) {
 	}
 
 	for i, statItem := range repo.FullStats() {
-		if statItemKeys[i] != statItem.Key {
-			t.Error("Invalid stats output")
-		}
+		assert.Equal(t, statItemKeys[i], statItem.Key, "Invalid stats output")
 	}
 }
 
@@ -114,7 +102,5 @@ func Test_Count(t *testing.T) {
 
 	repo.GetQueue("test1")
 	repo.GetQueue("test2")
-	if repo.Count() != 2 {
-		t.Error("Invalid count")
-	}
+	assert.Equal(t, repo.Count(), 2)
 }
