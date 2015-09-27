@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"log"
@@ -61,7 +61,7 @@ func (self *Service) Serve(listener *net.TCPListener) {
 }
 
 func (self *Service) Stop() {
-	log.Println("stopping server and finishing work...")
+	log.Println("stopping service and finishing work...")
 	close(self.ch)
 	self.wg.Wait()
 }

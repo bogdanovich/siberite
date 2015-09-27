@@ -9,7 +9,8 @@ Siberite is a simple leveldb backed message queue server ([wavii/darner](https:/
 Make sure your `GOROOT` and `GOPATH` are correct
 
 ```
-git clone http://github.com/bogdanovich/siberite && cd siberite/main
+go get github.com/bogdanovich/siberite
+cd $GOPATH/src/github.com/bogdanovich/siberite/main
 go build siberite.go
 mkdir ./data
 ./siberite -listen localhost:22133 -data ./data
