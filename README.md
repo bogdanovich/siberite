@@ -1,12 +1,12 @@
 # Siberite
-
-[![Join the chat at https://gitter.im/bogdanovich/siberite](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bogdanovich/siberite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/bogdanovich/siberite.svg?branch=master)](https://travis-ci.org/bogdanovich/siberite)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bogdanovich/siberite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Siberite is a simple leveldb backed message queue server ([wavii/darner](https://github.com/wavii/darner) rewritten in Go).
 
 ## Build
 
-Make sure your `GOROOT` and `GOPATH` is set correctly
+Make sure your `GOROOT` and `GOPATH` are correct
 
 ```
 git clone http://github.com/bogdanovich/siberite && cd siberite/main
