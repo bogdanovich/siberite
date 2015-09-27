@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 )
 
-// Command: set <queue> <not_impl> <not_impl> <bytes>
+// Command: SET <queue> <not_impl> <not_impl> <bytes>
 // <data block>
 // Response: STORED
 func (self *Controller) Set(input []string) error {

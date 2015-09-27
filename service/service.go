@@ -55,7 +55,6 @@ func (self *Service) Serve(listener *net.TCPListener) {
 			}
 			log.Println(err)
 		}
-		log.Println(conn.RemoteAddr(), "connected")
 		self.wg.Add(1)
 		go self.HandleConnection(conn)
 	}
@@ -85,7 +84,7 @@ func (self *Service) HandleConnection(conn *net.TCPConn) {
 		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 			continue
 		}
-		if err != nil {
+		if err != nil && err.Error() != "EOF" {
 			log.Println(conn.RemoteAddr(), err)
 			return
 		}

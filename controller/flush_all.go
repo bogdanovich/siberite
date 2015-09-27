@@ -6,10 +6,10 @@ import (
 	"log"
 )
 
-// Command: flush_all
+// Command: FLUSH_ALL
 // Response:
 // END
-func (self *Controller) FlushAll(input []string) error {
+func (self *Controller) FlushAll() error {
 	err := self.repo.FlushAllQueues()
 	if err != nil {
 		log.Printf("Can't flush all queues: %s", err.Error())

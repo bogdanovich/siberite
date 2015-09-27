@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// Command: delete <queue>
+// Command: DELETE <queue>
 // Response:
 // END
 func (self *Controller) Delete(input []string) error {

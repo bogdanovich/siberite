@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 )
 
-// Command: get <queue>
+// Command: GET <queue>
 // Response:
 // VALUE <queue> 0 <bytes>
 // <data block>

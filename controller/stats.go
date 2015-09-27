@@ -2,6 +2,7 @@ package controller
 
 import "fmt"
 
+// Command: STATS
 func (self *Controller) Stats() error {
 
 	for _, item := range self.repo.FullStats() {

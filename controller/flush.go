@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// Command: flush <queue>
+// Command: FLUSH <queue>
 // Response:
 // END
 func (self *Controller) Flush(input []string) error {

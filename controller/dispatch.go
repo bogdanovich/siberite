@@ -31,7 +31,7 @@ func (self *Controller) Dispatch() error {
 	case "flush":
 		err = self.Flush(command)
 	case "flush_all":
-		err = self.FlushAll(command)
+		err = self.FlushAll()
 	default:
 		return self.UnknownCommand()
 	}
