@@ -84,8 +84,10 @@ func (self *Service) HandleConnection(conn *net.TCPConn) {
 		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 			continue
 		}
-		if err != nil && err.Error() != "EOF" {
-			log.Println(conn.RemoteAddr(), err)
+		if err != nil {
+			if err.Error() != "EOF" {
+				log.Println(conn.RemoteAddr(), err)
+			}
 			return
 		}
 	}
