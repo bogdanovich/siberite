@@ -56,11 +56,11 @@ func Test_NewSession_FinishSession(t *testing.T) {
 	mockTCPConn := NewMockTCPConn()
 	c := NewSession(mockTCPConn, repo)
 
-	assert.Equal(t, repo.Stats.CurrentConnections, uint64(1))
-	assert.Equal(t, repo.Stats.TotalConnections, uint64(1))
+	assert.Equal(t, uint64(1), repo.Stats.CurrentConnections)
+	assert.Equal(t, uint64(1), repo.Stats.TotalConnections)
 
 	c.FinishSession()
-	assert.Equal(t, repo.Stats.CurrentConnections, uint64(0))
+	assert.Equal(t, uint64(0), repo.Stats.CurrentConnections)
 }
 
 func Test_ReadFirstMessage(t *testing.T) {
@@ -74,12 +74,12 @@ func Test_ReadFirstMessage(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "GET work\r\n")
 	message, err := controller.ReadFirstMessage()
 	assert.Nil(t, err)
-	assert.Equal(t, message, "GET work\r\n")
+	assert.Equal(t, "GET work\r\n", message)
 
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "SET work 0 0 10\r\n0123456789\r\n")
 	message, err = controller.ReadFirstMessage()
 	assert.Nil(t, err)
-	assert.Equal(t, message, "SET work 0 0 10\r\n")
+	assert.Equal(t, "SET work 0 0 10\r\n", message)
 }
 
 func Test_UnknownCommand(t *testing.T) {
@@ -91,8 +91,8 @@ func Test_UnknownCommand(t *testing.T) {
 	controller := NewSession(mockTCPConn, repo)
 
 	err = controller.UnknownCommand()
-	assert.Equal(t, err.Error(), "ERROR Unknown command")
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "ERROR Unknown command\r\n")
+	assert.Equal(t, "ERROR Unknown command", err.Error())
+	assert.Equal(t, "ERROR Unknown command\r\n", mockTCPConn.WriteBuffer.String())
 
 }
 
@@ -105,5 +105,5 @@ func Test_SendError(t *testing.T) {
 	controller := NewSession(mockTCPConn, repo)
 
 	controller.SendError("Test error message")
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "Test error message\r\n")
+	assert.Equal(t, "Test error message\r\n", mockTCPConn.WriteBuffer.String())
 }
