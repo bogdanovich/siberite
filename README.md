@@ -19,11 +19,18 @@ mkdir ./data
 2015/09/22 06:29:38 data directory:  ./data
 ```
 
+## Protocol
+
+Siberite follows the same protocol as [Kestrel](http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache),
+which is the memcache TCP text protocol.
+
+[List of compaible clients](docs/clients.md)
+
+
 ## Usage
 
 ```
 telnet localhost 22133
-rying ::1...
 Connected to localhost.
 Escape character is '^]'.
 
@@ -63,22 +70,18 @@ END
 # other commands:
 # get work/peek
 # get work/open
+# get work/close/open
 # get work/abort
 # flush work
 # delete work
 # flush_all
 ```
 
-
-## Protocol
-
-Siberite follows the same protocol as [Kestrel](http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache), which is the memcache
-protocol.
-
 ## Todo
 
-  - close an exisitng item read and open a new one in one command GET work/close/open
+  - some stats
 
 ## Not supported
 
   - waiting a given time limit for a new item to arrive /t=<milliseconds>
+

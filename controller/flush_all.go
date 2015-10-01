@@ -15,7 +15,7 @@ func (self *Controller) FlushAll() error {
 		log.Printf("Can't flush all queues: %s", err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
-	fmt.Fprint(self.rw.Writer, "END\r\n")
+	fmt.Fprint(self.rw.Writer, "Flushed all queues.\r\n")
 	self.rw.Writer.Flush()
 	return nil
 }

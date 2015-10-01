@@ -24,12 +24,12 @@ func Test_Flush(t *testing.T) {
 	assert.Nil(t, err)
 	response, err := mockTCPConn.WriteBuffer.ReadString('\n')
 	assert.Nil(t, err)
-	assert.Equal(t, response, "END\r\n")
+	assert.Equal(t, "END\r\n", response)
 
 	command = []string{"FLUSH", "test"}
 	err = controller.Flush(command)
 	assert.Nil(t, err)
 	response, err = mockTCPConn.WriteBuffer.ReadString('\n')
 	assert.Nil(t, err)
-	assert.Equal(t, response, "END\r\n")
+	assert.Equal(t, "END\r\n", response)
 }

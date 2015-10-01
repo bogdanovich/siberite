@@ -16,5 +16,5 @@ func Test_Version(t *testing.T) {
 
 	err = controller.Version()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VERSION "+repo.Stats.Version+"\r\n")
+	assert.Equal(t, "VERSION "+repo.Stats.Version+"\r\n", mockTCPConn.WriteBuffer.String())
 }

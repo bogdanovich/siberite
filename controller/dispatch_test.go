@@ -22,7 +22,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "set test 0 0 1\r\n1\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "STORED\r\n")
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -32,7 +32,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "20\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "STORED\r\n")
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -46,7 +46,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "1\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "STORED\r\n")
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -54,7 +54,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "get test\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VALUE test 0 1\r\n1\r\nEND\r\n")
+	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -62,7 +62,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "get test/open\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VALUE test 0 2\r\n20\r\nEND\r\n")
+	assert.Equal(t, "VALUE test 0 2\r\n20\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -70,7 +70,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "GET test/abort\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "END\r\n")
+	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -78,7 +78,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "get test/open\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VALUE test 0 2\r\n20\r\nEND\r\n")
+	assert.Equal(t, "VALUE test 0 2\r\n20\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -86,7 +86,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "get test/close\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "END\r\n")
+	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -94,7 +94,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "version\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VERSION "+repo.Stats.Version+"\r\n")
+	assert.Equal(t, "VERSION "+repo.Stats.Version+"\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -112,7 +112,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "flush test\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "END\r\n")
+	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -120,7 +120,7 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "DELETE test\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "END\r\n")
+	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -128,5 +128,5 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "flush_all\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "END\r\n")
+	assert.Equal(t, "Flushed all queues.\r\n", mockTCPConn.WriteBuffer.String())
 }

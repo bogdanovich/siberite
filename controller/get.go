@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"sync/atomic"
 )
+
+var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
 
 // Command: GET <queue>
 // Response:
@@ -14,25 +17,32 @@ import (
 // <data block>
 // END
 func (self *Controller) Get(input []string) error {
-	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
-	if strings.Contains(input[1], "/") {
-		tokens := strings.SplitN(input[1], "/", 2)
-		cmd.QueueName = tokens[0]
-		cmd.SubCommand = tokens[1]
-	}
+	var err error
+	cmd := parseGetCommand(input)
 
 	switch cmd.SubCommand {
 	case "", "open":
-		return self.get(cmd)
+		err = self.get(cmd)
 	case "close":
-		return self.getClose(cmd)
+		err = self.getClose(cmd)
+	case "close/open":
+		if err = self.getClose(cmd); err == nil {
+			err = self.get(cmd)
+		}
 	case "abort":
-		return self.getAbort(cmd)
+		err = self.getAbort(cmd)
 	case "peek":
-		return self.peek(cmd)
+		err = self.peek(cmd)
+	default:
+		err = errors.New("ERROR " + "Invalid command")
 	}
 
-	return errors.New("ERROR " + "Invalid command")
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(self.rw.Writer, "END\r\n")
+	self.rw.Writer.Flush()
+	return nil
 }
 
 func (self *Controller) get(cmd *Command) error {
@@ -50,12 +60,10 @@ func (self *Controller) get(cmd *Command) error {
 		fmt.Fprintf(self.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(item.Value))
 		fmt.Fprintf(self.rw.Writer, "%s\r\n", item.Value)
 	}
-	fmt.Fprint(self.rw.Writer, "END\r\n")
-	if cmd.SubCommand == "open" && len(item.Value) > 0 {
+	if strings.Contains(cmd.SubCommand, "open") && len(item.Value) > 0 {
 		self.setCurrentState(cmd, item)
 		q.AddOpenTransactions(1)
 	}
-	self.rw.Writer.Flush()
 	atomic.AddUint64(&self.repo.Stats.CmdGet, 1)
 	return nil
 }
@@ -71,15 +79,14 @@ func (self *Controller) getClose(cmd *Command) error {
 		self.setCurrentState(nil, nil)
 	}
 
-	fmt.Fprint(self.rw.Writer, "END\r\n")
-	self.rw.Writer.Flush()
 	return nil
 }
 
 func (self *Controller) getAbort(cmd *Command) error {
-	self.abort(cmd)
-	fmt.Fprint(self.rw.Writer, "END\r\n")
-	self.rw.Writer.Flush()
+	err := self.abort(cmd)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -113,8 +120,19 @@ func (self *Controller) peek(cmd *Command) error {
 		fmt.Fprintf(self.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(item.Value))
 		fmt.Fprintf(self.rw.Writer, "%s\r\n", item.Value)
 	}
-	fmt.Fprint(self.rw.Writer, "END\r\n")
-	self.rw.Writer.Flush()
 	atomic.AddUint64(&self.repo.Stats.CmdGet, 1)
 	return nil
+}
+
+func parseGetCommand(input []string) *Command {
+	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
+	if strings.Contains(input[1], "t=") {
+		input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
+	}
+	if strings.Contains(input[1], "/") {
+		tokens := strings.SplitN(input[1], "/", 2)
+		cmd.QueueName = tokens[0]
+		cmd.SubCommand = strings.Trim(tokens[1], "/")
+	}
+	return cmd
 }

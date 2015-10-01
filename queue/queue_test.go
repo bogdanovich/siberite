@@ -22,19 +22,19 @@ func Test_Open(t *testing.T) {
 	q, err := Open(name, dir)
 	defer q.Drop()
 	assert.Nil(t, err)
-	assert.Equal(t, q.Head(), uint64(0), "Invalid initial queue state")
-	assert.Equal(t, q.Tail(), uint64(0), "Invalid initial queue state")
-	assert.Equal(t, q.Length(), uint64(0), "Invalid initial queue state")
+	assert.Equal(t, uint64(0), q.Head(), "Invalid initial queue state")
+	assert.Equal(t, uint64(0), q.Tail(), "Invalid initial queue state")
+	assert.Equal(t, uint64(0), q.Length(), "Invalid initial queue state")
 
 	invalidQueueName := "%@#*(&($%@#"
 	q2, err := Open(invalidQueueName, dir)
 	defer q2.Drop()
-	assert.Equal(t, err.Error(), "Queue name is not alphanumeric")
+	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
 
 	invalidQueueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	q3, err := Open(invalidQueueName, dir)
 	defer q3.Drop()
-	assert.Equal(t, err.Error(), "Queue name is too long")
+	assert.Equal(t, "Queue name is too long", err.Error())
 }
 
 func Test_Drop(t *testing.T) {
@@ -52,14 +52,14 @@ func Test_HeadTail(t *testing.T) {
 
 	for i := 1; i <= queueLength; i++ {
 		_ = q.Enqueue([]byte("1"))
-		assert.Equal(t, q.Head(), uint64(0))
-		assert.Equal(t, q.Tail(), uint64(i))
+		assert.Equal(t, uint64(0), q.Head())
+		assert.Equal(t, uint64(i), q.Tail())
 	}
 
 	for i := 1; i <= queueLength; i++ {
 		_, _ = q.Dequeue()
-		assert.Equal(t, q.Head(), uint64(i))
-		assert.Equal(t, q.Tail(), uint64(queueLength))
+		assert.Equal(t, uint64(i), q.Head())
+		assert.Equal(t, uint64(queueLength), q.Tail())
 	}
 
 }
@@ -75,7 +75,7 @@ func Test_Peek(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		item, err := q.Peek()
 		assert.Nil(t, err)
-		assert.Equal(t, string(item.Value), inputValue, "Invalid value")
+		assert.Equal(t, inputValue, string(item.Value), "Invalid value")
 	}
 }
 
@@ -93,14 +93,14 @@ func Test_EnqueueDequeueLength(t *testing.T) {
 	}
 
 	for i := 0; i < len(values); i++ {
-		assert.Equal(t, q.Length(), uint64(i))
+		assert.Equal(t, uint64(i), q.Length())
 		q.Enqueue([]byte(values[i]))
 	}
 
 	for i := 0; i < len(values); i++ {
 		item, err := q.Dequeue()
 		assert.Nil(t, err)
-		assert.Equal(t, string(item.Value), values[i], "Invalid value")
+		assert.Equal(t, values[i], string(item.Value), "Invalid value")
 	}
 
 }
@@ -117,16 +117,16 @@ func Test_Prepend(t *testing.T) {
 	item, _ := q.Dequeue()
 	q.Dequeue()
 
-	assert.Equal(t, q.Head(), uint64(2))
+	assert.Equal(t, uint64(2), q.Head())
 
 	err = q.Prepend(item)
 	assert.Nil(t, err)
 
-	assert.Equal(t, q.Head(), uint64(1))
+	assert.Equal(t, uint64(1), q.Head())
 
 	// Check that we get the same item with the next Dequeue
 	item, _ = q.Dequeue()
-	assert.Equal(t, string(item.Value), "1")
+	assert.Equal(t, "1", string(item.Value))
 }
 
 func Test_Length(t *testing.T) {
@@ -139,14 +139,14 @@ func Test_Length(t *testing.T) {
 	}
 
 	for i := 0; i < len(values); i++ {
-		assert.Equal(t, q.Length(), uint64(i))
+		assert.Equal(t, uint64(i), q.Length())
 		q.Enqueue([]byte(values[i]))
 	}
 
 	for i := len(values); i < 0; i-- {
 		_, err := q.Dequeue()
 		assert.Nil(t, err)
-		assert.Equal(t, q.Length(), uint64(i))
+		assert.Equal(t, uint64(i), q.Length())
 	}
 }
 
@@ -155,9 +155,9 @@ func Test_AddOpenTransactions(t *testing.T) {
 	defer q.Drop()
 
 	q.AddOpenTransactions(1)
-	assert.Equal(t, q.Stats.OpenTransactions, int64(1))
+	assert.Equal(t, int64(1), q.Stats.OpenTransactions)
 	q.AddOpenTransactions(-1)
-	assert.Equal(t, q.Stats.OpenTransactions, int64(0))
+	assert.Equal(t, int64(0), q.Stats.OpenTransactions)
 }
 
 func Test_initialize(t *testing.T) {
@@ -168,7 +168,7 @@ func Test_initialize(t *testing.T) {
 	q.Enqueue([]byte("2"))
 	q.Enqueue([]byte("3"))
 
-	assert.Equal(t, q.Length(), uint64(3))
+	assert.Equal(t, uint64(3), q.Length())
 
 	expectedLength := q.Length()
 	expectedHead := q.Head()
@@ -189,5 +189,5 @@ func Test_initialize(t *testing.T) {
 func Test_queuePath(t *testing.T) {
 	q, _ := Open("test_queue", dir)
 	defer q.Drop()
-	assert.Equal(t, q.Path(), "./test_data/test_queue")
+	assert.Equal(t, "./test_data/test_queue", q.Path())
 }

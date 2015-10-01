@@ -24,12 +24,12 @@ func Test_Delete(t *testing.T) {
 	assert.Nil(t, err)
 	response, err := mockTCPConn.WriteBuffer.ReadString('\n')
 	assert.Nil(t, err)
-	assert.Equal(t, response, "END\r\n")
+	assert.Equal(t, "END\r\n", response)
 
 	command = []string{"DELETE", "test"}
 	err = controller.Delete(command)
 	assert.Nil(t, err)
 	response, err = mockTCPConn.WriteBuffer.ReadString('\n')
 	assert.Nil(t, err)
-	assert.Equal(t, response, "END\r\n")
+	assert.Equal(t, "END\r\n", response)
 }

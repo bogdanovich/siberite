@@ -48,13 +48,13 @@ func Test_Initialize(t *testing.T) {
 	repo, err = Initialize(dir)
 	assert.Nil(t, err)
 
-	assert.Equal(t, repo.Count(), 3, "Invalid repo count after initialization")
+	assert.Equal(t, 3, repo.Count(), "Invalid repo count after initialization")
 
 	for i := 0; i < len(queueNames); i++ {
 		q, _ = repo.GetQueue(queueNames[i])
-		assert.Equal(t, q.Head(), uint64(1), "Invalid queue initialization")
-		assert.Equal(t, q.Tail(), uint64(totalItems), "Invalid queue initialization")
-		assert.Equal(t, q.Length(), uint64(totalItems-1), "Invalid queue initialization")
+		assert.Equal(t, uint64(1), q.Head(), "Invalid queue initialization")
+		assert.Equal(t, uint64(totalItems), q.Tail(), "Invalid queue initialization")
+		assert.Equal(t, uint64(totalItems-1), q.Length(), "Invalid queue initialization")
 	}
 	repo.DeleteAllQueues()
 }
@@ -92,7 +92,7 @@ func Test_FullStats(t *testing.T) {
 	}
 
 	for i, statItem := range repo.FullStats() {
-		assert.Equal(t, statItemKeys[i], statItem.Key, "Invalid stats output")
+		assert.Equal(t, statItem.Key, statItemKeys[i], "Invalid stats output")
 	}
 }
 
@@ -102,5 +102,5 @@ func Test_Count(t *testing.T) {
 
 	repo.GetQueue("test1")
 	repo.GetQueue("test2")
-	assert.Equal(t, repo.Count(), 2)
+	assert.Equal(t, 2, repo.Count())
 }

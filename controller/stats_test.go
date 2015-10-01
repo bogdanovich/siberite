@@ -34,5 +34,5 @@ func Test_Stats(t *testing.T) {
 		"STAT queue_test_open_transactions 0\r\n" +
 		"END\r\n"
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), statsResponse)
+	assert.Equal(t, statsResponse, mockTCPConn.WriteBuffer.String())
 }

@@ -21,7 +21,7 @@ func Test_Set(t *testing.T) {
 
 	err = controller.Set(command)
 	assert.Nil(t, err)
-	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "STORED\r\n")
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -29,7 +29,7 @@ func Test_Set(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0\r\n")
 
 	err = controller.Set(command)
-	assert.Equal(t, err.Error(), "ERROR Invalid input")
+	assert.Equal(t, "ERROR Invalid input", err.Error())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -37,7 +37,7 @@ func Test_Set(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0123567890\r\n")
 
 	err = controller.Set(command)
-	assert.Equal(t, err.Error(), "ERROR Invalid <bytes> number")
+	assert.Equal(t, "ERROR Invalid <bytes> number", err.Error())
 
 	mockTCPConn.WriteBuffer.Reset()
 
@@ -45,5 +45,5 @@ func Test_Set(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "01235678901234567890\r\n")
 
 	err = controller.Set(command)
-	assert.Equal(t, err.Error(), "CLIENT_ERROR bad data chunk")
+	assert.Equal(t, "CLIENT_ERROR bad data chunk", err.Error())
 }
