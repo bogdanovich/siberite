@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"sync/atomic"
 )
+
+var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
 
 // Command: GET <queue>
 // Response:
@@ -14,12 +17,7 @@ import (
 // <data block>
 // END
 func (self *Controller) Get(input []string) error {
-	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
-	if strings.Contains(input[1], "/") {
-		tokens := strings.SplitN(input[1], "/", 2)
-		cmd.QueueName = tokens[0]
-		cmd.SubCommand = tokens[1]
-	}
+	cmd := parseGetCommand(input)
 
 	switch cmd.SubCommand {
 	case "", "open":
@@ -117,4 +115,17 @@ func (self *Controller) peek(cmd *Command) error {
 	self.rw.Writer.Flush()
 	atomic.AddUint64(&self.repo.Stats.CmdGet, 1)
 	return nil
+}
+
+func parseGetCommand(input []string) *Command {
+	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
+	if strings.Contains(input[1], "t=") {
+		input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
+	}
+	if strings.Contains(input[1], "/") {
+		tokens := strings.SplitN(input[1], "/", 2)
+		cmd.QueueName = tokens[0]
+		cmd.SubCommand = strings.Trim(tokens[1], "/")
+	}
+	return cmd
 }

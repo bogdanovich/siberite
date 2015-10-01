@@ -192,3 +192,26 @@ func Test_GetOpen_Disconnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, mockTCPConn.WriteBuffer.String(), "VALUE test 0 1\r\n1\r\nEND\r\n")
 }
+
+func Test_parseGetCommand(t *testing.T) {
+	testCases := map[string]string{
+		"work":                         "",
+		"work/open":                    "open",
+		"work/close":                   "close",
+		"work/abort":                   "abort",
+		"work/peek":                    "peek",
+		"work/t=10":                    "",
+		"work/t=10/t=100/t=1234567890": "",
+		"work/t=10/open":               "open",
+		"work/open/t=10":               "open",
+		"work/close/open/t=10":         "close/open",
+		"work/close/t=10/open/abort":   "close/open/abort",
+	}
+
+	for input, subCommand := range testCases {
+		cmd := parseGetCommand([]string{"get", input})
+		assert.Equal(t, "get", cmd.Name, input)
+		assert.Equal(t, "work", cmd.QueueName, input)
+		assert.Equal(t, subCommand, cmd.SubCommand, input)
+	}
+}
