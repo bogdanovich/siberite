@@ -128,5 +128,5 @@ func Test_Dispatch(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "flush_all\r\n")
 	err = controller.Dispatch()
 	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+	assert.Equal(t, "Flushed all queues.\r\n", mockTCPConn.WriteBuffer.String())
 }

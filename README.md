@@ -77,6 +77,10 @@ END
 # flush_all
 ```
 
+## Todo
+
+  - some stats
+
 ## Not supported
 
   - waiting a given time limit for a new item to arrive /t=<milliseconds>

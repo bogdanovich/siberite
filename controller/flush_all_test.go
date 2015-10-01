@@ -19,5 +19,5 @@ func Test_FlushAll(t *testing.T) {
 	assert.Nil(t, err)
 	response, err := mockTCPConn.WriteBuffer.ReadString('\n')
 	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", response)
+	assert.Equal(t, "Flushed all queues.\r\n", response)
 }
