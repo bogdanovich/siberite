@@ -1,5 +1,6 @@
 ## 0.3
 
+- Implemented GET <queue-name>/close/open
 - Accept /t=<milliseconds> parameter for backwards compatibility.
   Ignore provided timeout.
 

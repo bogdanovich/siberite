@@ -70,15 +70,12 @@ END
 # other commands:
 # get work/peek
 # get work/open
+# get work/close/open
 # get work/abort
 # flush work
 # delete work
 # flush_all
 ```
-
-## Todo
-
-  - close an exisitng item read and open a new one in one command GET work/close/open
 
 ## Not supported
 
