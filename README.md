@@ -10,7 +10,9 @@ Make sure your `GOROOT` and `GOPATH` are correct
 
 ```
 go get github.com/bogdanovich/siberite
-cd $GOPATH/src/github.com/bogdanovich/siberite/siberite
+cd $GOPATH/src/github.com/bogdanovich/siberite
+go get ./...
+cd siberite
 go build siberite.go
 mkdir ./data
 ./siberite -listen localhost:22133 -data ./data
