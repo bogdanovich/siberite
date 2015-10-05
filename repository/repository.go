@@ -77,7 +77,7 @@ func (self *QueueRepository) DeleteQueue(key string) error {
 // Delete all queues from repository
 func (self *QueueRepository) DeleteAllQueues() error {
 	var err error
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		err = self.DeleteQueue(pair.Key)
 		if err != nil {
 			return err
@@ -100,7 +100,7 @@ func (self *QueueRepository) FlushQueue(key string) error {
 // Remove all items from all queues
 func (self *QueueRepository) FlushAllQueues() error {
 	var err error
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		err = self.FlushQueue(pair.Key)
 		if err != nil {
 			return err
@@ -112,7 +112,7 @@ func (self *QueueRepository) FlushAllQueues() error {
 func (self *QueueRepository) CloseAllQueues() error {
 	var err error
 	var q *queue.Queue
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		q, err = self.GetQueue(pair.Key)
 		if err != nil {
 			return err
@@ -134,7 +134,7 @@ func (self *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", self.Stats.CmdGet)})
 	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", self.Stats.CmdSet)})
 	var q *queue.Queue
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})

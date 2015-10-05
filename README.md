@@ -26,7 +26,7 @@ mkdir ./data
 Siberite follows the same protocol as [Kestrel](http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache),
 which is the memcache TCP text protocol.
 
-[List of compaible clients](docs/clients.md)
+[List of compatible clients](docs/clients.md)
 
 
 ## Usage
