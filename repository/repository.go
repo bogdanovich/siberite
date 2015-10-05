@@ -12,7 +12,7 @@ import (
 	"github.com/streamrail/concurrent-map"
 )
 
-const Version = "siberite-0.3"
+const Version = "siberite-0.3.1"
 
 type QueueRepository struct {
 	storage  cmap.ConcurrentMap
