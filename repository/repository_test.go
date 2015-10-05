@@ -11,7 +11,6 @@ import (
 
 var dir = "./test_data"
 var name = "test"
-var err error
 
 func TestMain(m *testing.M) {
 	err = os.MkdirAll(dir, 0777)
