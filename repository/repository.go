@@ -1,23 +1,24 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/bogdanovich/siberite/queue"
 	"github.com/streamrail/concurrent-map"
 )
 
-const Version = "siberite-0.3"
+const Version = "siberite-0.3.1"
 
 type QueueRepository struct {
 	storage  cmap.ConcurrentMap
 	DataPath string
 	Stats    *Stats
+	sync.Mutex
 }
 
 // Service stats
@@ -35,6 +36,8 @@ type StatItem struct {
 	Value string
 }
 
+var err error
+
 // Open and initialize all queues in data directory
 func Initialize(dataDir string) (*QueueRepository, error) {
 	dataPath, err := filepath.Abs(dataDir)
@@ -42,42 +45,40 @@ func Initialize(dataDir string) (*QueueRepository, error) {
 		return nil, err
 	}
 	stats := &Stats{Version, time.Now().Unix(), 0, 0, 0, 0}
-	repo := QueueRepository{cmap.New(), dataPath, stats}
+	repo := QueueRepository{storage: cmap.New(), DataPath: dataPath, Stats: stats}
 	return &repo, repo.initialize()
 }
 
 // Get existing queue from repository or create a new one
 func (self *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
-	if !self.storage.Has(key) {
-		q, err := queue.Open(key, self.DataPath)
-		if err != nil {
-			return nil, err
+	q, ok := self.get(key)
+	if !ok {
+		self.Lock()
+		if q, ok = self.get(key); !ok {
+			q, err = queue.Open(key, self.DataPath)
+			if err != nil {
+				return nil, err
+			}
+			self.storage.Set(key, q)
 		}
-		self.storage.Set(key, q)
+		self.Unlock()
 	}
-	return self.get(key)
+	return q, nil
 }
 
 // Delete queue from repository
 func (self *QueueRepository) DeleteQueue(key string) error {
-	if !self.storage.Has(key) {
-		return nil
+	if q, ok := self.get(key); ok {
+		q.Drop()
+		self.storage.Remove(key)
 	}
-
-	q, err := self.get(key)
-	if err != nil {
-		return err
-	}
-
-	q.Drop()
-	self.storage.Remove(key)
 	return nil
 }
 
 // Delete all queues from repository
 func (self *QueueRepository) DeleteAllQueues() error {
 	var err error
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		err = self.DeleteQueue(pair.Key)
 		if err != nil {
 			return err
@@ -100,7 +101,7 @@ func (self *QueueRepository) FlushQueue(key string) error {
 // Remove all items from all queues
 func (self *QueueRepository) FlushAllQueues() error {
 	var err error
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		err = self.FlushQueue(pair.Key)
 		if err != nil {
 			return err
@@ -112,7 +113,7 @@ func (self *QueueRepository) FlushAllQueues() error {
 func (self *QueueRepository) CloseAllQueues() error {
 	var err error
 	var q *queue.Queue
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		q, err = self.GetQueue(pair.Key)
 		if err != nil {
 			return err
@@ -134,7 +135,7 @@ func (self *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", self.Stats.CmdGet)})
 	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", self.Stats.CmdSet)})
 	var q *queue.Queue
-	for pair := range self.storage.Iter() {
+	for pair := range self.storage.IterBuffered() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})
@@ -164,10 +165,10 @@ func (self *QueueRepository) initialize() error {
 	return nil
 }
 
-func (self *QueueRepository) get(key string) (*queue.Queue, error) {
+func (self *QueueRepository) get(key string) (*queue.Queue, bool) {
 	val, ok := self.storage.Get(key)
-	if !ok {
-		return nil, errors.New("failed to retrieve queue " + key)
+	if ok {
+		return val.(*queue.Queue), ok
 	}
-	return val.(*queue.Queue), nil
+	return nil, ok
 }
