@@ -25,15 +25,15 @@ func NewMockTCPConn() *MockTCPConn {
 	return conn
 }
 
-func (self *MockTCPConn) Read(b []byte) (int, error) {
-	return self.ReadBuffer.Read(b)
+func (conn *MockTCPConn) Read(b []byte) (int, error) {
+	return conn.ReadBuffer.Read(b)
 }
 
-func (self *MockTCPConn) Write(b []byte) (int, error) {
-	return self.WriteBuffer.Write(b)
+func (conn *MockTCPConn) Write(b []byte) (int, error) {
+	return conn.WriteBuffer.Write(b)
 }
 
-func (self *MockTCPConn) SetDeadline(t time.Time) error {
+func (conn *MockTCPConn) SetDeadline(t time.Time) error {
 	return nil
 }
 

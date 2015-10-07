@@ -6,16 +6,17 @@ import (
 	"log"
 )
 
+// FlushAll handles FLUSH_ALL command
 // Command: FLUSH_ALL
 // Response:
 // END
-func (self *Controller) FlushAll() error {
-	err := self.repo.FlushAllQueues()
+func (c *Controller) FlushAll() error {
+	err := c.repo.FlushAllQueues()
 	if err != nil {
 		log.Printf("Can't flush all queues: %s", err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
-	fmt.Fprint(self.rw.Writer, "Flushed all queues.\r\n")
-	self.rw.Writer.Flush()
+	fmt.Fprint(c.rw.Writer, "Flushed all queues.\r\n")
+	c.rw.Writer.Flush()
 	return nil
 }

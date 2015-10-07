@@ -5,39 +5,40 @@ import (
 	"time"
 )
 
-func (self *Controller) Dispatch() error {
+// Dispatch routes client commands to their respective handlers
+func (c *Controller) Dispatch() error {
 	var err error
-	self.conn.SetDeadline(time.Now().Add(3e9))
-	message, err := self.ReadFirstMessage()
+	c.conn.SetDeadline(time.Now().Add(3e9))
+	message, err := c.ReadFirstMessage()
 	if err != nil {
 		return err
 	}
 
-	self.conn.SetDeadline(time.Time{})
+	c.conn.SetDeadline(time.Time{})
 	command := strings.Split(strings.Trim(message, " \r\n"), " ")
 	command[0] = strings.ToLower(command[0])
 
 	switch command[0] {
 	case "get":
-		err = self.Get(command)
+		err = c.Get(command)
 	case "set":
-		err = self.Set(command)
+		err = c.Set(command)
 	case "version":
-		err = self.Version()
+		err = c.Version()
 	case "stats":
-		err = self.Stats()
+		err = c.Stats()
 	case "delete":
-		err = self.Delete(command)
+		err = c.Delete(command)
 	case "flush":
-		err = self.Flush(command)
+		err = c.Flush(command)
 	case "flush_all":
-		err = self.FlushAll()
+		err = c.FlushAll()
 	default:
-		return self.UnknownCommand()
+		return c.UnknownCommand()
 	}
 
 	if err != nil {
-		self.SendError(err.Error())
+		c.SendError(err.Error())
 		return err
 	}
 	return nil
