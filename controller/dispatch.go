@@ -19,7 +19,7 @@ func (c *Controller) Dispatch() error {
 	command[0] = strings.ToLower(command[0])
 
 	switch command[0] {
-	case "get":
+	case "get", "gets":
 		err = c.Get(command)
 	case "set":
 		err = c.Set(command)
