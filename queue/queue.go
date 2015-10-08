@@ -12,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+// Queue represents a persistent FIFO structure
+// that stores the data in leveldb
 type Queue struct {
 	sync.RWMutex
 	Name     string
@@ -23,18 +25,19 @@ type Queue struct {
 	isOpened bool
 }
 
+//Stats contains queue level stats
 type Stats struct {
 	OpenTransactions int64
 }
 
-// Queue Item
+// Item represents a queue item
 type Item struct {
 	Key   []byte
 	Value []byte
 	Size  int32
 }
 
-// Create Queue and open leveldb database
+// Open creates a queue and opens underlying leveldb database
 func Open(name string, dataDir string) (*Queue, error) {
 	q := &Queue{
 		Name:     name,
@@ -49,99 +52,105 @@ func Open(name string, dataDir string) (*Queue, error) {
 }
 
 // Close leveldb database
-func (self *Queue) Close() {
-	if self.isOpened {
-		self.db.Close()
+func (q *Queue) Close() {
+	if q.isOpened {
+		q.db.Close()
 	}
-	self.isOpened = false
+	q.isOpened = false
 }
 
-// Close and delete leveldb database
-func (self *Queue) Drop() {
-	self.Close()
-	os.RemoveAll(self.Path())
+// Drop closes and deletes leveldb database
+func (q *Queue) Drop() {
+	q.Close()
+	os.RemoveAll(q.Path())
 }
 
-// Current head of the queue
-func (self *Queue) Head() uint64 { return self.head }
+// Head returns current head offset of the queue
+func (q *Queue) Head() uint64 { return q.head }
 
-// Current tail of the queue
-func (self *Queue) Tail() uint64 { return self.tail }
+// Tail returns current tail offset of the queue
+func (q *Queue) Tail() uint64 { return q.tail }
 
-// Current length of the queue
-func (self *Queue) Length() uint64 {
-	self.RLock()
-	defer self.RUnlock()
-	return self.length()
+// Length returns current length of the queue
+func (q *Queue) Length() uint64 {
+	q.RLock()
+	defer q.RUnlock()
+	return q.length()
 }
 
-// Get next item without removing it from the queue
-func (self *Queue) Peek() (*Item, error) {
-	self.RLock()
-	defer self.RUnlock()
+// Peek returns next queue item without removing it from the queue
+func (q *Queue) Peek() (*Item, error) {
+	q.RLock()
+	defer q.RUnlock()
 
-	return self.peek()
+	return q.peek()
 }
 
-// Add new value to the queue
-func (self *Queue) Enqueue(value []byte) error {
-	self.Lock()
-	defer self.Unlock()
+// Enqueue adds new value to the queue
+func (q *Queue) Enqueue(value []byte) error {
+	q.Lock()
+	defer q.Unlock()
 
 	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, self.tail+1)
-	err := self.db.Put(key, value, nil)
+	binary.BigEndian.PutUint64(key, q.tail+1)
+	err := q.db.Put(key, value, nil)
 	if err == nil {
-		self.tail += 1
+		q.tail++
 	}
 	return err
 }
 
-// Get next item and remove it from queue
-func (self *Queue) Dequeue() (*Item, error) {
-	self.Lock()
-	defer self.Unlock()
+// Dequeue returns next queue item and removes it from the queue
+func (q *Queue) Dequeue() (*Item, error) {
+	q.Lock()
+	defer q.Unlock()
 
-	item, err := self.peek()
+	item, err := q.peek()
 	if err != nil {
 		return item, err
 	}
 
-	err = self.db.Delete(item.Key, nil)
+	err = q.db.Delete(item.Key, nil)
 	if err == nil {
-		self.head += 1
+		q.head++
 	}
 	return item, err
 }
 
-// Put item as a new head item
-func (self *Queue) Prepend(item *Item) error {
-	self.Lock()
-	defer self.Unlock()
-	if self.head < 1 {
+// Prepend adds new queue intem in from of the queue
+func (q *Queue) Prepend(item *Item) error {
+	q.Lock()
+	defer q.Unlock()
+	if q.head < 1 {
 		return errors.New("Queue head can not be less then zero")
 	}
 	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, self.head)
-	err := self.db.Put(key, item.Value, nil)
+	binary.BigEndian.PutUint64(key, q.head)
+	err := q.db.Put(key, item.Value, nil)
 	if err == nil {
-		self.head -= 1
+		q.head--
 	}
 	return err
 }
 
-func (self *Queue) AddOpenTransactions(value int64) {
-	atomic.AddInt64(&self.Stats.OpenTransactions, value)
+// AddOpenTransactions increments OpenTransactions stats item
+func (q *Queue) AddOpenTransactions(value int64) {
+	atomic.AddInt64(&q.Stats.OpenTransactions, value)
 }
 
-func (self *Queue) open() error {
-	self.Lock()
-	defer self.Unlock()
-	if regexp.MustCompile(`[^a-zA-Z0-9_]+`).MatchString(self.Name) {
+// Path returns leveldb database file path
+func (q *Queue) Path() string {
+	return q.DataDir + "/" + q.Name
+}
+
+func (q *Queue) open() error {
+	q.Lock()
+	defer q.Unlock()
+	if regexp.MustCompile(`[^a-zA-Z0-9_]+`).MatchString(q.Name) {
 		return errors.New("Queue name is not alphanumeric")
 	}
 
-	if len(self.Name) > 100 {
+	if len(q.Name) > 100 {
 		return errors.New("Queue name is too long")
 	}
 
@@ -151,45 +160,41 @@ func (self *Queue) open() error {
 	}
 
 	var err error
-	self.db, err = leveldb.OpenFile(self.Path(), &o)
+	q.db, err = leveldb.OpenFile(q.Path(), &o)
 	if err != nil {
 		return err
 	}
-	self.isOpened = true
-	return self.initialize()
+	q.isOpened = true
+	return q.initialize()
 }
 
-func (self *Queue) length() uint64 {
-	return self.tail - self.head
+func (q *Queue) length() uint64 {
+	return q.tail - q.head
 }
 
-func (self *Queue) peek() (*Item, error) {
-	if self.length() < 1 {
+func (q *Queue) peek() (*Item, error) {
+	if q.length() < 1 {
 		return &Item{nil, nil, 0}, errors.New("Queue is empty")
 	}
 
 	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, self.head+1)
-	value, err := self.db.Get(key, nil)
+	binary.BigEndian.PutUint64(key, q.head+1)
+	value, err := q.db.Get(key, nil)
 	item := &Item{key, value, int32(len(value))}
 	return item, err
 }
 
-func (self *Queue) initialize() error {
-	iter := self.db.NewIterator(nil, nil)
+func (q *Queue) initialize() error {
+	iter := q.db.NewIterator(nil, nil)
 	defer iter.Release()
 
 	if iter.First() {
-		self.head = binary.BigEndian.Uint64(iter.Key()) - 1
+		q.head = binary.BigEndian.Uint64(iter.Key()) - 1
 	}
 
 	if iter.Last() {
-		self.tail = binary.BigEndian.Uint64(iter.Key())
+		q.tail = binary.BigEndian.Uint64(iter.Key())
 	}
 
 	return iter.Error()
-}
-
-func (self *Queue) Path() string {
-	return self.DataDir + "/" + self.Name
 }

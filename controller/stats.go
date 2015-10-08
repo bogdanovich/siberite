@@ -2,13 +2,13 @@ package controller
 
 import "fmt"
 
-// Command: STATS
-func (self *Controller) Stats() error {
+// Stats handles STATS command
+func (c *Controller) Stats() error {
 
-	for _, item := range self.repo.FullStats() {
-		fmt.Fprintf(self.rw.Writer, "STAT %s %s\r\n", item.Key, item.Value)
+	for _, item := range c.repo.FullStats() {
+		fmt.Fprintf(c.rw.Writer, "STAT %s %s\r\n", item.Key, item.Value)
 	}
-	fmt.Fprintf(self.rw.Writer, "END\r\n")
-	self.rw.Writer.Flush()
+	fmt.Fprintf(c.rw.Writer, "END\r\n")
+	c.rw.Writer.Flush()
 	return nil
 }

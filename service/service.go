@@ -10,6 +10,7 @@ import (
 	"github.com/bogdanovich/siberite/repository"
 )
 
+// Service represents a siberite tcp server
 type Service struct {
 	dataDir string
 	repo    *repository.QueueRepository
@@ -17,6 +18,7 @@ type Service struct {
 	wg      *sync.WaitGroup
 }
 
+// New creates a new service
 func New(dataDir string) *Service {
 	s := &Service{
 		dataDir: dataDir,
@@ -28,20 +30,21 @@ func New(dataDir string) *Service {
 	return s
 }
 
-func (self *Service) Serve(listener *net.TCPListener) {
-	defer self.wg.Done()
+// Serve starts the service
+func (s *Service) Serve(listener *net.TCPListener) {
+	defer s.wg.Done()
 
 	log.Println("initializing...")
 	var err error
-	self.repo, err = repository.Initialize(self.dataDir)
-	log.Println("data directory: ", self.dataDir)
+	s.repo, err = repository.Initialize(s.dataDir)
+	log.Println("data directory: ", s.dataDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for {
 		select {
-		case <-self.ch:
+		case <-s.ch:
 			log.Println("stopping listening on", listener.Addr())
 			listener.Close()
 			return
@@ -55,27 +58,28 @@ func (self *Service) Serve(listener *net.TCPListener) {
 			}
 			log.Println(err)
 		}
-		self.wg.Add(1)
-		go self.HandleConnection(conn)
+		s.wg.Add(1)
+		go s.handleConnection(conn)
 	}
 }
 
-func (self *Service) Stop() {
+// Stop service
+func (s *Service) Stop() {
 	log.Println("stopping service and finishing work...")
-	close(self.ch)
-	self.wg.Wait()
+	close(s.ch)
+	s.wg.Wait()
 }
 
-func (self *Service) HandleConnection(conn *net.TCPConn) {
+func (s *Service) handleConnection(conn *net.TCPConn) {
 	defer conn.Close()
-	defer self.wg.Done()
+	defer s.wg.Done()
 
-	controller := controller.NewSession(conn, self.repo)
+	controller := controller.NewSession(conn, s.repo)
 	defer controller.FinishSession()
 
 	for {
 		select {
-		case <-self.ch:
+		case <-s.ch:
 			log.Println("Disconnecting", conn.RemoteAddr())
 			return
 		default:
@@ -93,6 +97,7 @@ func (self *Service) HandleConnection(conn *net.TCPConn) {
 	}
 }
 
-func (self *Service) Version() string {
+// Version returns siberite version
+func (s *Service) Version() string {
 	return repository.Version
 }

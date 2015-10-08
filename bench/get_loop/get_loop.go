@@ -10,14 +10,14 @@ import (
 	"github.com/kklis/gomemcache"
 )
 
-var QueueHost = flag.String("host", "localhost", "queue host")
-var QueuePort = flag.Int("port", 22133, "queue port")
-var QueueName = flag.String("queue", "test", "queue name")
-var MaxGoroutines = flag.Int("concurrency", 4, "max concurrent lookups")
+var queueHost = flag.String("host", "localhost", "queue host")
+var queuePort = flag.Int("port", 22133, "queue port")
+var queueName = flag.String("queue", "test", "queue name")
+var maxGoroutines = flag.Int("concurrency", 4, "max concurrent lookups")
 
 func loop(queueName string, done chan struct{}, stop chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
-	memc, err := gomemcache.Connect(*QueueHost, *QueuePort)
+	memc, err := gomemcache.Connect(*queueHost, *queuePort)
 	defer memc.Close()
 	if err != nil {
 		log.Println(err)
@@ -47,11 +47,11 @@ func main() {
 	flag.Parse()
 	var wg sync.WaitGroup
 	for {
-		done := make(chan struct{}, *MaxGoroutines)
+		done := make(chan struct{}, *maxGoroutines)
 		stop := make(chan struct{})
-		for i := 0; i < *MaxGoroutines; i++ {
+		for i := 0; i < *maxGoroutines; i++ {
 			wg.Add(1)
-			go loop(*QueueName, done, stop, &wg)
+			go loop(*queueName, done, stop, &wg)
 		}
 		<-done
 		log.Println("Stopping other goroutines..")

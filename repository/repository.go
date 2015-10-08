@@ -12,8 +12,10 @@ import (
 	"github.com/streamrail/concurrent-map"
 )
 
+// Version represents siberite version
 const Version = "siberite-0.3.1"
 
+// QueueRepository represents a repository of queues
 type QueueRepository struct {
 	storage  cmap.ConcurrentMap
 	DataPath string
@@ -21,7 +23,7 @@ type QueueRepository struct {
 	sync.Mutex
 }
 
-// Service stats
+// Stats keeps service stat fields
 type Stats struct {
 	Version            string
 	StartTime          int64
@@ -31,6 +33,7 @@ type Stats struct {
 	CmdSet             uint64
 }
 
+// StatItem - a single stats item
 type StatItem struct {
 	Key   string
 	Value string
@@ -38,7 +41,7 @@ type StatItem struct {
 
 var err error
 
-// Open and initialize all queues in data directory
+// Initialize and open all queues in the data directory
 func Initialize(dataDir string) (*QueueRepository, error) {
 	dataPath, err := filepath.Abs(dataDir)
 	if err != nil {
@@ -49,37 +52,38 @@ func Initialize(dataDir string) (*QueueRepository, error) {
 	return &repo, repo.initialize()
 }
 
-// Get existing queue from repository or create a new one
-func (self *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
-	q, ok := self.get(key)
+// GetQueue returns existing queue from repository,
+// creates a new one if it doesn't exist
+func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
+	q, ok := repo.get(key)
 	if !ok {
-		self.Lock()
-		if q, ok = self.get(key); !ok {
-			q, err = queue.Open(key, self.DataPath)
+		repo.Lock()
+		if q, ok = repo.get(key); !ok {
+			q, err = queue.Open(key, repo.DataPath)
 			if err != nil {
 				return nil, err
 			}
-			self.storage.Set(key, q)
+			repo.storage.Set(key, q)
 		}
-		self.Unlock()
+		repo.Unlock()
 	}
 	return q, nil
 }
 
-// Delete queue from repository
-func (self *QueueRepository) DeleteQueue(key string) error {
-	if q, ok := self.get(key); ok {
+// DeleteQueue deletes a queue from the repository
+func (repo *QueueRepository) DeleteQueue(key string) error {
+	if q, ok := repo.get(key); ok {
 		q.Drop()
-		self.storage.Remove(key)
+		repo.storage.Remove(key)
 	}
 	return nil
 }
 
-// Delete all queues from repository
-func (self *QueueRepository) DeleteAllQueues() error {
+// DeleteAllQueues deletes all queues from the repo
+func (repo *QueueRepository) DeleteAllQueues() error {
 	var err error
-	for pair := range self.storage.IterBuffered() {
-		err = self.DeleteQueue(pair.Key)
+	for pair := range repo.storage.IterBuffered() {
+		err = repo.DeleteQueue(pair.Key)
 		if err != nil {
 			return err
 		}
@@ -87,22 +91,22 @@ func (self *QueueRepository) DeleteAllQueues() error {
 	return nil
 }
 
-// Remove all items from queue
-func (self *QueueRepository) FlushQueue(key string) error {
-	err := self.DeleteQueue(key)
+// FlushQueue removes all items from queue
+func (repo *QueueRepository) FlushQueue(key string) error {
+	err := repo.DeleteQueue(key)
 	if err != nil {
 		return err
 	}
 	// initialize new queue
-	_, err = self.GetQueue(key)
+	_, err = repo.GetQueue(key)
 	return err
 }
 
-// Remove all items from all queues
-func (self *QueueRepository) FlushAllQueues() error {
+// FlushAllQueues removes all items from all the queues
+func (repo *QueueRepository) FlushAllQueues() error {
 	var err error
-	for pair := range self.storage.IterBuffered() {
-		err = self.FlushQueue(pair.Key)
+	for pair := range repo.storage.IterBuffered() {
+		err = repo.FlushQueue(pair.Key)
 		if err != nil {
 			return err
 		}
@@ -110,11 +114,12 @@ func (self *QueueRepository) FlushAllQueues() error {
 	return nil
 }
 
-func (self *QueueRepository) CloseAllQueues() error {
+// CloseAllQueues closes all queues
+func (repo *QueueRepository) CloseAllQueues() error {
 	var err error
 	var q *queue.Queue
-	for pair := range self.storage.IterBuffered() {
-		q, err = self.GetQueue(pair.Key)
+	for pair := range repo.storage.IterBuffered() {
+		q, err = repo.GetQueue(pair.Key)
 		if err != nil {
 			return err
 		}
@@ -123,19 +128,19 @@ func (self *QueueRepository) CloseAllQueues() error {
 	return nil
 }
 
-// Get repository stats
-func (self *QueueRepository) FullStats() []StatItem {
+// FullStats gets repository stats
+func (repo *QueueRepository) FullStats() []StatItem {
 	stats := []StatItem{}
 	currentTime := time.Now().Unix()
-	stats = append(stats, StatItem{"uptime", fmt.Sprintf("%d", currentTime-self.Stats.StartTime)})
+	stats = append(stats, StatItem{"uptime", fmt.Sprintf("%d", currentTime-repo.Stats.StartTime)})
 	stats = append(stats, StatItem{"time", fmt.Sprintf("%d", currentTime)})
-	stats = append(stats, StatItem{"version", fmt.Sprintf("%s", self.Stats.Version)})
-	stats = append(stats, StatItem{"curr_connections", fmt.Sprintf("%d", self.Stats.CurrentConnections)})
-	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", self.Stats.TotalConnections)})
-	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", self.Stats.CmdGet)})
-	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", self.Stats.CmdSet)})
+	stats = append(stats, StatItem{"version", fmt.Sprintf("%s", repo.Stats.Version)})
+	stats = append(stats, StatItem{"curr_connections", fmt.Sprintf("%d", repo.Stats.CurrentConnections)})
+	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", repo.Stats.TotalConnections)})
+	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", repo.Stats.CmdGet)})
+	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", repo.Stats.CmdSet)})
 	var q *queue.Queue
-	for pair := range self.storage.IterBuffered() {
+	for pair := range repo.storage.IterBuffered() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})
@@ -143,19 +148,20 @@ func (self *QueueRepository) FullStats() []StatItem {
 	return stats
 }
 
-func (self *QueueRepository) Count() int {
-	return self.storage.Count()
+// Count returns a total number of queues
+func (repo *QueueRepository) Count() int {
+	return repo.storage.Count()
 }
 
-func (self *QueueRepository) initialize() error {
-	dirs, err := ioutil.ReadDir(self.DataPath)
+func (repo *QueueRepository) initialize() error {
+	dirs, err := ioutil.ReadDir(repo.DataPath)
 	if err != nil {
-		return fmt.Errorf("error opening data directory (%s): %s", self.DataPath, err.Error())
+		return fmt.Errorf("error opening data directory (%s): %s", repo.DataPath, err.Error())
 	}
 	for _, dir := range dirs {
 		if dir.IsDir() {
 			// queue initization
-			q, err := self.GetQueue(dir.Name())
+			q, err := repo.GetQueue(dir.Name())
 			if err != nil {
 				log.Printf("initializing queue %s...%s", dir.Name(), err.Error())
 			}
@@ -165,8 +171,8 @@ func (self *QueueRepository) initialize() error {
 	return nil
 }
 
-func (self *QueueRepository) get(key string) (*queue.Queue, bool) {
-	val, ok := self.storage.Get(key)
+func (repo *QueueRepository) get(key string) (*queue.Queue, bool) {
+	val, ok := repo.storage.Get(key)
 	if ok {
 		return val.(*queue.Queue), ok
 	}
