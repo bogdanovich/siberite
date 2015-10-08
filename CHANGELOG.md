@@ -1,16 +1,25 @@
+## 0.4
+
+- Add GETS command support (for protocol compatibility)
+
+## 0.3.1
+
+- Fix deadlock during FLUSH_ALL
+- Fix race condition when opening a new queue
+
 ## 0.3
 
-- Implemented GET <queue-name>/close/open
+- Implement GET <queue-name>/close/open
 - Accept /t=<milliseconds> parameter for backwards compatibility.
   Ignore provided timeout.
 
 ## 0.2.2
 
-- Fixed bug that was introduced in commit 95912a4.
+- Fix bug that was introduced in commit 95912a4.
   Did not handle EOF disconnects properly.
 
 ## 0.2.1
 
 - Allow uppercase commands
-- Add open_transactions to stats
+- Add open_transactions stats parameter
 - Use testify/assert for tests
