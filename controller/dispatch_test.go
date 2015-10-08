@@ -36,6 +36,16 @@ func Test_Dispatch(t *testing.T) {
 
 	mockTCPConn.WriteBuffer.Reset()
 
+	// Command: SET test 0 0 2
+	// ab
+	fmt.Fprintf(&mockTCPConn.ReadBuffer, "SET test 0 0 2\r\n")
+	fmt.Fprintf(&mockTCPConn.ReadBuffer, "ab\r\n")
+	err = controller.Dispatch()
+	assert.Nil(t, err)
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
 	// Command: set test 0 0 10
 	// 123
 	// 12
@@ -87,6 +97,14 @@ func Test_Dispatch(t *testing.T) {
 	err = controller.Dispatch()
 	assert.Nil(t, err)
 	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+	// Command: gets test/close/open
+	fmt.Fprintf(&mockTCPConn.ReadBuffer, "gets test/close/open\r\n")
+	err = controller.Dispatch()
+	assert.Nil(t, err)
+	assert.Equal(t, "VALUE test 0 2\r\nab\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 

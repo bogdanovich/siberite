@@ -290,3 +290,40 @@ func Test_GetCloseOpen(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 }
+
+// Initialize test queue with 2 items
+// gets test/open = value
+// gets test = error
+// GETS test/t=10/close/open = value
+func Test_Gets(t *testing.T) {
+	repo, err := repository.Initialize(dir)
+	defer repo.CloseAllQueues()
+	assert.Nil(t, err)
+
+	mockTCPConn := NewMockTCPConn()
+	controller := NewSession(mockTCPConn, repo)
+
+	repo.FlushQueue("test")
+	q, err := repo.GetQueue("test")
+	assert.Nil(t, err)
+
+	q.Enqueue([]byte("1"))
+	q.Enqueue([]byte("2"))
+
+	// gets test/open = 1
+	command := []string{"gets", "test"}
+	err = controller.Get(command)
+	assert.Nil(t, err)
+	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+	// GETS test/t=10/close/open = 2
+	command = []string{"GETS", "test/t=10/close/open"}
+	err = controller.Get(command)
+	assert.Nil(t, err)
+	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+}
