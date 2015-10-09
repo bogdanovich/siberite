@@ -13,9 +13,11 @@ import (
 	service "github.com/bogdanovich/siberite/service"
 )
 
-var dataDir = flag.String("data", "./data", "path to data directory")
-var hostAndPort = flag.String("listen", "0.0.0.0:22133", "ip and port to listen")
-var versionFlag = flag.Bool("version", false, "prints current version")
+var (
+	dataDir     = flag.String("data", "./data", "path to data directory")
+	hostAndPort = flag.String("listen", "0.0.0.0:22133", "ip and port to listen")
+	versionFlag = flag.Bool("version", false, "prints current version")
+)
 
 func main() {
 	flag.Parse()

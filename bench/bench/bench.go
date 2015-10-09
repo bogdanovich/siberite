@@ -14,14 +14,16 @@ import (
 	"github.com/kklis/gomemcache"
 )
 
-var queueHost = flag.String("host", "localhost", "queue host")
-var queuePort = flag.Int("port", 22133, "queue port")
-var queueName = flag.String("queue", "db_bench", "queue name")
-var numGoroutines = flag.Int("concurrency", 1, "max concurrent lookups")
-var numQueues = flag.Int("queues", 1, "number of simultaneously used queues")
-var numSets = flag.Int("sets", 0, "number of set commands")
-var numGets = flag.Int("gets", 0, "number of get commands")
-var itemSize = flag.Int("item_size", 64, "item size")
+var (
+	queueHost     = flag.String("host", "localhost", "queue host")
+	queuePort     = flag.Int("port", 22133, "queue port")
+	queueName     = flag.String("queue", "db_bench", "queue name")
+	numGoroutines = flag.Int("concurrency", 1, "max concurrent lookups")
+	numQueues     = flag.Int("queues", 1, "number of simultaneously used queues")
+	numSets       = flag.Int("sets", 0, "number of set commands")
+	numGets       = flag.Int("gets", 0, "number of get commands")
+	itemSize      = flag.Int("item_size", 64, "item size")
+)
 
 type dataSource struct {
 	buf []byte

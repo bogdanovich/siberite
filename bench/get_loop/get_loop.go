@@ -10,10 +10,12 @@ import (
 	"github.com/kklis/gomemcache"
 )
 
-var queueHost = flag.String("host", "localhost", "queue host")
-var queuePort = flag.Int("port", 22133, "queue port")
-var queueName = flag.String("queue", "test", "queue name")
-var maxGoroutines = flag.Int("concurrency", 4, "max concurrent lookups")
+var (
+	queueHost     = flag.String("host", "localhost", "queue host")
+	queuePort     = flag.Int("port", 22133, "queue port")
+	queueName     = flag.String("queue", "test", "queue name")
+	maxGoroutines = flag.Int("concurrency", 4, "max concurrent lookups")
+)
 
 func loop(queueName string, done chan struct{}, stop chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
