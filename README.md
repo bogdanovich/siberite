@@ -4,6 +4,10 @@
 
 Siberite is a simple leveldb backed message queue server ([wavii/darner](https://github.com/wavii/darner) rewritten in Go).
 
+##Benchmarks
+
+[Siberite performance benchmarks](docs/benchmarks.md)
+
 ## Build
 
 Make sure your `GOROOT` and `GOPATH` are correct
@@ -86,4 +90,3 @@ END
 ## Not supported
 
   - waiting a given time limit for a new item to arrive /t=<milliseconds>
-

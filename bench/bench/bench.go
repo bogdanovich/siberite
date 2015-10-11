@@ -51,13 +51,12 @@ func get(memc *gomemcache.Memcache) error {
 	return err
 }
 
-func worker(queueName string, done chan struct{}, wg *sync.WaitGroup) {
+func worker(done chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	memc, err := gomemcache.Connect(*queueHost, *queuePort)
 	defer memc.Close()
 	if err != nil {
 		log.Println(err)
-		return
 	}
 
 	setsRemaning := *numSets
@@ -66,36 +65,28 @@ func worker(queueName string, done chan struct{}, wg *sync.WaitGroup) {
 	dataSource := &dataSource{make([]byte, *itemSize), randbo.New()}
 
 	for {
-		select {
-		case <-done:
-			log.Println("Done")
+		if getsRemaning > 0 {
+			if setsRemaning < 1 {
+				err = get(memc)
+				getsRemaning--
+			} else if float32(getsRemaning)/float32(setsRemaning) > getSetRatio {
+				err = get(memc)
+				getsRemaning--
+			} else {
+				err = set(memc, dataSource)
+				setsRemaning--
+			}
+		} else if setsRemaning > 0 {
+			err = set(memc, dataSource)
+			setsRemaning--
+		} else {
 			return
-		default:
-			for i := 0; i < 10000; i++ {
-				if getsRemaning > 0 {
-					if setsRemaning < 1 {
-						err = get(memc)
-						getsRemaning--
-					} else if float32(getsRemaning)/float32(setsRemaning) > getSetRatio {
-						err = get(memc)
-						getsRemaning--
-					} else {
-						err = set(memc, dataSource)
-						setsRemaning--
-					}
-				} else if setsRemaning > 0 {
-					err = set(memc, dataSource)
-					setsRemaning--
-				} else {
-					return
-				}
-				if err != nil && err.Error() != "memcache: not found" {
-					log.Println(err)
-					memc, err = gomemcache.Connect(*queueHost, *queuePort)
-					if err != nil {
-						return
-					}
-				}
+		}
+		if err != nil && err.Error() != "memcache: not found" {
+			log.Println(err)
+			memc, err = gomemcache.Connect(*queueHost, *queuePort)
+			if err != nil {
+				log.Println(err)
 			}
 		}
 	}
@@ -111,7 +102,7 @@ func main() {
 	startTime := time.Now()
 	for i := 0; i < *numGoroutines; i++ {
 		wg.Add(1)
-		go worker(*queueName, done, &wg)
+		go worker(done, &wg)
 	}
 
 	wg.Wait()
