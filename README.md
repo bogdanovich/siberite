@@ -2,7 +2,29 @@
 [![Build Status](https://travis-ci.org/bogdanovich/siberite.svg?branch=master)](https://travis-ci.org/bogdanovich/siberite)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bogdanovich/siberite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Siberite is a simple leveldb backed message queue server ([wavii/darner](https://github.com/wavii/darner) rewritten in Go).
+Siberite is a simple leveldb backed message queue server<br>
+([twitter/kestrel](https://github.com/twitter/kestrel), [wavii/darner](https://github.com/wavii/darner) rewritten in Go).
+
+Siberite is a very simple message queue server.  Unlike in-memory servers such as [redis](http://redis.io/), Siberite is
+designed to handle queues much larger than what can be held in RAM.  And unlike enterprise queue servers such as
+[RabbitMQ](http://www.rabbitmq.com/), Siberite keeps all messages **out of process**,
+using [goleveldb](https://github.com/syndtr/goleveldb) as a persistent storage.
+
+The result is a durable queue server that uses a small amount of in-resident memory regardless of queue size.
+
+Siberite is based on Robey Pointer's [Kestrel](https://github.com/robey/kestrel) - simple, distributed message queue.
+Like Kestrel, Siberite follows the "No talking! Shhh!" approach to distributed queues:
+A single Siberite server has a set of queues identified by name.  Each queue is a strictly-ordered FIFO,
+and querying from a fleet of Siberite servers provides a loosely-ordered queue.
+Siberite also supports Kestrel's two-phase reliable fetch: if a client disconnects before confirming it handled
+a message, the message will be handed to the next client.
+
+Compared to Kestrel and Darner, Siberite is easier to build, maintain and distribute.
+It uses an order of magnitude less memory compared to Kestrel, but has less configuration far fewer features.
+
+Siberite is used at [Spyonweb.com](http://spyonweb.com).<br>
+We used to use Darner before, but got 2 large production queues corrupted at some point and decided to rewrite it in Go.
+
 
 ##Benchmarks
 
@@ -32,8 +54,7 @@ which is the memcache TCP text protocol.
 
 [List of compatible clients](docs/clients.md)
 
-
-## Usage
+## Telnet example
 
 ```
 telnet localhost 22133
@@ -83,10 +104,7 @@ END
 # flush_all
 ```
 
-## Todo
-
-  - some stats
 
 ## Not supported
 
-  - waiting a given time limit for a new item to arrive /t=<milliseconds>
+  - waiting a given time limit for a new item to arrive /t=<milliseconds> (allowed by protocol but does nothing)

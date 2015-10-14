@@ -112,3 +112,43 @@ siberite    4000 conns: 27876.874830
 siberite    6000 conns: 22633.264009
 siberite    8000 conns: 19387.906547
 ```
+
+# Queue Packing
+
+This tests the queue server's behavior with a backlog of items.  The challenge for the queue server is to serve items
+that no longer all fit in memory.  Absolute throughput isn't important here - item sizes are large to quickly saturate
+free memory.  Instead it's important for the throughput to flatten out as the backlog grows.
+
+![Queue Packing Benchmark](images/queue_packing_benchmark.png)
+
+
+```
+$ ./packing.sh
+warming up kestrel...done.
+kestrel        0 sets: 15052.481901
+kestrel     1024 sets: 15525.517448
+kestrel    16384 sets: 15377.189029
+kestrel    65536 sets: 14683.953159
+kestrel   262144 sets: 14147.473998
+kestrel  1048576 sets: 14099.458784
+kestrel  4194304 sets: 14893.911809
+kestrel  8388608 sets: 14831.780153
+
+darner        0 sets: 19459.351790
+darner     1024 sets: 18821.834508
+darner    16384 sets: 16667.949078
+darner    65536 sets: 16206.286265
+darner   262144 sets: 16551.859558
+darner  1048576 sets: 15245.079659
+darner  4194304 sets: 14875.396451
+darner  8388608 sets: 14750.351526
+
+siberite        0 sets: 16009.303237
+siberite     1024 sets: 15615.363126
+siberite    16384 sets: 14026.486300
+siberite    65536 sets: 12975.689809
+siberite   262144 sets: 11783.504995
+siberite  1048576 sets: 10107.638889
+siberite  4194304 sets: 10036.420823
+siberite  8388608 sets: 9868.384511
+```
