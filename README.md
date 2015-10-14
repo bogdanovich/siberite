@@ -47,6 +47,8 @@ mkdir ./data
 2015/09/22 06:29:38 data directory:  ./data
 ```
 
+or download [darwin-x86_64 or linux-x86_64 builds](https://github.com/bogdanovich/siberite/releases) 
+
 ## Protocol
 
 Siberite follows the same protocol as [Kestrel](http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache),
