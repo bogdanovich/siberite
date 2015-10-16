@@ -1,6 +1,7 @@
 # Siberite
 [![Build Status](https://travis-ci.org/bogdanovich/siberite.svg?branch=master)](https://travis-ci.org/bogdanovich/siberite)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bogdanovich/siberite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/bogdanovich/siberite)
 
 Siberite is a simple leveldb backed message queue server<br>
 ([twitter/kestrel](https://github.com/twitter/kestrel), [wavii/darner](https://github.com/wavii/darner) rewritten in Go).
