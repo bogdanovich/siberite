@@ -43,7 +43,7 @@ cd siberite
 go build siberite.go
 mkdir ./data
 ./siberite -listen localhost:22133 -data ./data
-2015/09/22 06:29:38 listening on 127.0.0.1:22134
+2015/09/22 06:29:38 listening on 127.0.0.1:22133
 2015/09/22 06:29:38 initializing...
 2015/09/22 06:29:38 data directory:  ./data
 ```
