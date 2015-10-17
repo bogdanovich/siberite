@@ -48,7 +48,7 @@ mkdir ./data
 2015/09/22 06:29:38 data directory:  ./data
 ```
 
-or download [darwin-x86_64 or linux-x86_64 builds](https://github.com/bogdanovich/siberite/releases) 
+or download [darwin-x86_64 or linux-x86_64 builds](https://github.com/bogdanovich/siberite/releases)
 
 ## Protocol
 
@@ -88,7 +88,7 @@ END
 stats
 STAT uptime 47
 STAT time 1443308758
-STAT version siberite-0.2.1
+STAT version siberite-0.4.1
 STAT curr_connections 1
 STAT total_connections 1
 STAT cmd_get 2
@@ -107,7 +107,11 @@ END
 # flush_all
 ```
 
+## TODO
+
+  - Add multiple consumers `get queue_name:consumer_name/open`
+
 
 ## Not supported
 
-  - waiting a given time limit for a new item to arrive /t=<milliseconds> (allowed by protocol but does nothing)
+  - Waiting a given time limit for a new item to arrive /t=<milliseconds> (allowed by protocol but does nothing)
