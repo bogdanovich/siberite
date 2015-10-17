@@ -13,7 +13,7 @@ import (
 )
 
 // Version represents siberite version
-const Version = "siberite-0.4"
+const Version = "siberite-0.4.1"
 
 // QueueRepository represents a repository of queues
 type QueueRepository struct {
