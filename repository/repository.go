@@ -58,6 +58,7 @@ func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
 	q, ok := repo.get(key)
 	if !ok {
 		repo.Lock()
+		defer repo.Unlock()
 		if q, ok = repo.get(key); !ok {
 			q, err = queue.Open(key, repo.DataPath)
 			if err != nil {
@@ -65,7 +66,6 @@ func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
 			}
 			repo.storage.Set(key, q)
 		}
-		repo.Unlock()
 	}
 	return q, nil
 }
