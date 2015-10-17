@@ -6,7 +6,9 @@
 # Folders
 data
 darner_data
-main/data
+siberite/data
+siberite/siberite
+bench/bench
 _obj
 _test
 

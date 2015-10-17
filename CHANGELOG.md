@@ -1,3 +1,7 @@
+## 0.4.1
+
+- Fix repository.GetQueue returns error without lock release
+
 ## 0.4
 
 - Add GETS command support (for protocol compatibility)
