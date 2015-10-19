@@ -8,7 +8,7 @@ Here is a list of clients that would support reliable reads:
 
 ## Ruby
 - [kestrel-client](https://github.com/freels/kestrel-client)
-- [memcache-client](https://github.com/mperham/memcache-client)
+- [dalli](https://github.com/mperham/dalli)
 
 ## Go
 - [kklis/gomemcache](https://github.com/kklis/gomemcache)
