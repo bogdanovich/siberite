@@ -6,10 +6,9 @@ import (
 	"log"
 )
 
-// FlushAll handles FLUSH_ALL command
+// FlushAll handles FLUSH_ALL command.
 // Command: FLUSH_ALL
-// Response:
-// END
+// Response: Flushed all queues
 func (c *Controller) FlushAll() error {
 	err := c.repo.FlushAllQueues()
 	if err != nil {

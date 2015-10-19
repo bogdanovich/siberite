@@ -105,6 +105,48 @@ func Test_EnqueueDequeueLength(t *testing.T) {
 
 }
 
+func Test_GetItemByID(t *testing.T) {
+	q, _ := Open(name, dir)
+	defer q.Drop()
+
+	values := []string{"1", "2", "3", "4"}
+	for i := 0; i < len(values); i++ {
+		q.Enqueue([]byte(values[i]))
+	}
+
+	item, err := q.GetItemByID(q.Head() + 1)
+	assert.Nil(t, err)
+	assert.Equal(t, "1", string(item.Value))
+
+	item, err = q.GetItemByID(q.Head() + 3)
+	assert.Nil(t, err)
+	assert.Equal(t, "3", string(item.Value))
+
+	item, err = q.GetItemByID(q.Head() + 5)
+	assert.Equal(t, "Id should be between head and tail", err.Error())
+}
+
+func Test_GetItemByOffset(t *testing.T) {
+	q, _ := Open(name, dir)
+	defer q.Drop()
+
+	values := []string{"1", "2", "3", "4"}
+	for i := 0; i < len(values); i++ {
+		q.Enqueue([]byte(values[i]))
+	}
+
+	item, err := q.GetItemByOffset(0)
+	assert.Nil(t, err)
+	assert.Equal(t, "1", string(item.Value))
+
+	item, err = q.GetItemByOffset(2)
+	assert.Nil(t, err)
+	assert.Equal(t, "3", string(item.Value))
+
+	item, err = q.GetItemByOffset(5)
+	assert.Equal(t, "Id should be between head and tail", err.Error())
+}
+
 func Test_Prepend(t *testing.T) {
 	q, _ := Open(name, dir)
 	defer q.Drop()

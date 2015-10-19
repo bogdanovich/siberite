@@ -82,8 +82,7 @@ func (q *Queue) Length() uint64 {
 func (q *Queue) Peek() (*Item, error) {
 	q.RLock()
 	defer q.RUnlock()
-
-	return q.peek()
+	return q.GetItemByID(q.head + 1)
 }
 
 // Enqueue adds new value to the queue
@@ -105,7 +104,7 @@ func (q *Queue) Dequeue() (*Item, error) {
 	q.Lock()
 	defer q.Unlock()
 
-	item, err := q.peek()
+	item, err := q.GetItemByID(q.head + 1)
 	if err != nil {
 		return item, err
 	}
@@ -117,7 +116,7 @@ func (q *Queue) Dequeue() (*Item, error) {
 	return item, err
 }
 
-// Prepend adds new queue intem in from of the queue
+// Prepend adds new item as a first element of the queue
 func (q *Queue) Prepend(item *Item) error {
 	q.Lock()
 	defer q.Unlock()
@@ -131,6 +130,24 @@ func (q *Queue) Prepend(item *Item) error {
 		q.head--
 	}
 	return err
+}
+
+// GetItemByID returns an item by it's id
+func (q *Queue) GetItemByID(id uint64) (*Item, error) {
+	if id <= q.head || id > q.tail {
+		return &Item{nil, nil, 0}, errors.New("Id should be between head and tail")
+	}
+
+	key := make([]byte, 8)
+	binary.BigEndian.PutUint64(key, id)
+	value, err := q.db.Get(key, nil)
+	item := &Item{key, value, int32(len(value))}
+	return item, err
+}
+
+// GetItemByOffset returns an item by offset from the queue head, starting from 0.
+func (q *Queue) GetItemByOffset(offset uint64) (*Item, error) {
+	return q.GetItemByID(q.head + 1 + offset)
 }
 
 // AddOpenTransactions increments OpenTransactions stats item
@@ -170,18 +187,6 @@ func (q *Queue) open() error {
 
 func (q *Queue) length() uint64 {
 	return q.tail - q.head
-}
-
-func (q *Queue) peek() (*Item, error) {
-	if q.length() < 1 {
-		return &Item{nil, nil, 0}, errors.New("Queue is empty")
-	}
-
-	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, q.head+1)
-	value, err := q.db.Get(key, nil)
-	item := &Item{key, value, int32(len(value))}
-	return item, err
 }
 
 func (q *Queue) initialize() error {
