@@ -12,7 +12,7 @@ import (
 )
 
 var dir = "./test_data"
-var hostAndPort = "127.0.0.1:22135"
+var hostAndPort = "127.0.0.1:22140"
 var err error
 
 func TestMain(m *testing.M) {
