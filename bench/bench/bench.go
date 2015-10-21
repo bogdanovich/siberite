@@ -111,15 +111,15 @@ func main() {
 	totalSets := *numSets * *numGoroutines
 
 	duration := time.Since(startTime)
-	fmt.Println("Number of concurrent clients:", *numGoroutines)
+	fmt.Println("Concurrent clients:", *numGoroutines)
 	fmt.Println("Number of queues:", *numQueues)
 	fmt.Println("Total gets:", totalGets)
 	fmt.Println("Total sets:", totalSets)
-	fmt.Println("Time taken for tests:", duration.Seconds(), "seconds")
-	fmt.Println("Bytes read:", *itemSize*totalGets/1024, "Kbytes")
-	fmt.Printf("Read rate: %f Kbytes/sec\r\n", float64(*itemSize*totalGets)/duration.Seconds()/1024)
-	fmt.Println("Bytes written:", *itemSize*totalSets/1024, "Kbytes")
-	fmt.Printf("Write rate: %f Kbytes/sec\r\n", float64(*itemSize*totalSets)/duration.Seconds()/1024)
-	fmt.Printf("Requests per second: %f #/sec\r\n", float64(totalGets+totalSets)/duration.Seconds())
-	fmt.Printf("Time per request: %f us (mean)\r\n", float64(duration.Nanoseconds())/float64(totalGets+totalSets))
+	fmt.Printf("Time taken for tests: %.3f seconds\r\n", duration.Seconds())
+	fmt.Println("Bytes read:", *itemSize*totalGets/1024, "KiB")
+	fmt.Printf("Read rate: %.0f KiB/s\r\n", float64(*itemSize*totalGets)/duration.Seconds()/1024)
+	fmt.Println("Bytes written:", *itemSize*totalSets/1024, "KiB")
+	fmt.Printf("Write rate: %.0f KiB/s\r\n", float64(*itemSize*totalSets)/duration.Seconds()/1024)
+	fmt.Printf("Requests per second: %.0f #/s\r\n", float64(totalGets+totalSets)/duration.Seconds())
+	fmt.Printf("Time per request: %.0f us (mean)\r\n", float64(duration.Nanoseconds())/float64(totalGets+totalSets))
 }
