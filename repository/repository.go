@@ -163,7 +163,7 @@ func (repo *QueueRepository) initialize() error {
 			// queue initization
 			q, err := repo.GetQueue(dir.Name())
 			if err != nil {
-				log.Printf("initializing queue %s...%s", dir.Name(), err.Error())
+				log.Fatalf("queue %s...%s", dir.Name(), err.Error())
 			}
 			log.Printf("queue \"%s\": size %d, head %d, tail %d", dir.Name(), q.Length(), q.Head(), q.Tail())
 		}
