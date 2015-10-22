@@ -109,7 +109,7 @@ END
 
 ## TODO
 
-  - Add multiple consumer groups `get queue_name:consumer_name/open`
+  - Add multiple consumer groups `get queue_name:consumer_group/open`
 
 
 ## Not supported
