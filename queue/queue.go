@@ -10,6 +10,7 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // Queue represents a persistent FIFO structure
@@ -19,13 +20,19 @@ type Queue struct {
 	Name     string
 	DataDir  string
 	Stats    *Stats
+	db       *leveldb.DB
+	opts     *Options
 	head     uint64
 	tail     uint64
-	db       *leveldb.DB
 	isOpened bool
 }
 
-//Stats contains queue level stats
+// Options represents queue options
+type Options struct {
+	KeyPrefix []byte
+}
+
+// Stats contains queue level stats
 type Stats struct {
 	OpenTransactions int64
 }
@@ -38,12 +45,13 @@ type Item struct {
 }
 
 // Open creates a queue and opens underlying leveldb database
-func Open(name string, dataDir string) (*Queue, error) {
+func Open(name string, dataDir string, opts *Options) (*Queue, error) {
 	q := &Queue{
 		Name:     name,
 		DataDir:  dataDir,
 		Stats:    &Stats{0},
 		db:       &leveldb.DB{},
+		opts:     opts,
 		head:     0,
 		tail:     0,
 		isOpened: false,
@@ -55,8 +63,8 @@ func Open(name string, dataDir string) (*Queue, error) {
 func (q *Queue) Close() {
 	if q.isOpened {
 		q.db.Close()
+		q.isOpened = false
 	}
-	q.isOpened = false
 }
 
 // Drop closes and deletes leveldb database
@@ -90,8 +98,7 @@ func (q *Queue) Enqueue(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 
-	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, q.tail+1)
+	key := q.dbKey(q.tail + 1)
 	err := q.db.Put(key, value, nil)
 	if err == nil {
 		q.tail++
@@ -123,8 +130,7 @@ func (q *Queue) Prepend(item *Item) error {
 	if q.head < 1 {
 		return errors.New("Queue head can not be less then zero")
 	}
-	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, q.head)
+	key := q.dbKey(q.head)
 	err := q.db.Put(key, item.Value, nil)
 	if err == nil {
 		q.head--
@@ -138,8 +144,7 @@ func (q *Queue) GetItemByID(id uint64) (*Item, error) {
 		return &Item{nil, nil, 0}, errors.New("Id should be between head and tail")
 	}
 
-	key := make([]byte, 8)
-	binary.BigEndian.PutUint64(key, id)
+	key := q.dbKey(id)
 	value, err := q.db.Get(key, nil)
 	item := &Item{key, value, int32(len(value))}
 	return item, err
@@ -180,20 +185,37 @@ func (q *Queue) open() error {
 	return q.initialize()
 }
 
+func (q *Queue) dbKey(id uint64) []byte {
+	if len(q.opts.KeyPrefix) == 0 {
+		key := make([]byte, 8)
+		binary.BigEndian.PutUint64(key, id)
+		return key
+	}
+	key := make([]byte, len(q.opts.KeyPrefix)+8)
+	copy(key[0:len(q.opts.KeyPrefix)], q.opts.KeyPrefix)
+	binary.BigEndian.PutUint64(key[len(q.opts.KeyPrefix):], id)
+	return key
+
+}
+
+func (q *Queue) dbKeyToID(key []byte) uint64 {
+	return binary.BigEndian.Uint64(key[len(q.opts.KeyPrefix):])
+}
+
 func (q *Queue) length() uint64 {
 	return q.tail - q.head
 }
 
 func (q *Queue) initialize() error {
-	iter := q.db.NewIterator(nil, nil)
+	iter := q.db.NewIterator(util.BytesPrefix(q.opts.KeyPrefix), nil)
 	defer iter.Release()
 
 	if iter.First() {
-		q.head = binary.BigEndian.Uint64(iter.Key()) - 1
+		q.head = q.dbKeyToID(iter.Key()) - 1
 	}
 
 	if iter.Last() {
-		q.tail = binary.BigEndian.Uint64(iter.Key())
+		q.tail = q.dbKeyToID(iter.Key())
 	}
 
 	return iter.Error()
