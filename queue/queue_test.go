@@ -10,6 +10,8 @@ import (
 
 var dir = "./test_data"
 var name = "test"
+var options = Options{}
+var optionsWithKeyPrefix = Options{KeyPrefix: []byte("queue_key:")}
 var err error
 
 func TestMain(m *testing.M) {
@@ -19,35 +21,53 @@ func TestMain(m *testing.M) {
 }
 
 func Test_Open(t *testing.T) {
-	q, err := Open(name, dir)
-	defer q.Drop()
+	q, err := Open(name, dir, &options)
 	assert.Nil(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	// with KeyPrefix
+	q, err = Open("with_prefix", dir, &optionsWithKeyPrefix)
+	assert.Nil(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	invalidQueueName := "%@#*(&($%@#"
+	q, err = Open(invalidQueueName, dir, &options)
+	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	q.Drop()
+
+	invalidQueueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	q, err = Open(invalidQueueName, dir, &options)
+	assert.Equal(t, "Queue name is too long", err.Error())
+	q.Drop()
+}
+
+func testOpen(t *testing.T, q *Queue) {
 	assert.Equal(t, uint64(0), q.Head(), "Invalid initial queue state")
 	assert.Equal(t, uint64(0), q.Tail(), "Invalid initial queue state")
 	assert.Equal(t, uint64(0), q.Length(), "Invalid initial queue state")
-
-	invalidQueueName := "%@#*(&($%@#"
-	q2, err := Open(invalidQueueName, dir)
-	defer q2.Drop()
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
-
-	invalidQueueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	q3, err := Open(invalidQueueName, dir)
-	defer q3.Drop()
-	assert.Equal(t, "Queue name is too long", err.Error())
 }
 
 func Test_Drop(t *testing.T) {
-	q, _ := Open(name, dir)
+	q, _ := Open(name, dir, &options)
 	q.Drop()
 	_, err = os.Stat(q.Path())
 	assert.NotNil(t, err, "Path should not exist")
 }
 
-func Test_HeadTail(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+func Test_HeadAndTail(t *testing.T) {
+	q, _ := Open(name, dir, &options)
+	testHeadAndTail(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testHeadAndTail(t, q)
+	q.Drop()
+}
+
+func testHeadAndTail(t *testing.T, q *Queue) {
 	queueLength := 5
 
 	for i := 1; i <= queueLength; i++ {
@@ -61,13 +81,19 @@ func Test_HeadTail(t *testing.T) {
 		assert.Equal(t, uint64(i), q.Head())
 		assert.Equal(t, uint64(queueLength), q.Tail())
 	}
-
 }
 
 func Test_Peek(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testPeek(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testPeek(t, q)
+	q.Drop()
+}
+
+func testPeek(t *testing.T, q *Queue) {
 	inputValue := "1"
 	err = q.Enqueue([]byte(inputValue))
 	assert.Nil(t, err)
@@ -80,9 +106,16 @@ func Test_Peek(t *testing.T) {
 }
 
 func Test_EnqueueDequeueLength(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testEnqueueDequeueLength(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testEnqueueDequeueLength(t, q)
+	q.Drop()
+}
+
+func testEnqueueDequeueLength(t *testing.T, q *Queue) {
 	if q.Length() != 0 {
 		t.Error("Invalid initial length")
 	}
@@ -102,13 +135,19 @@ func Test_EnqueueDequeueLength(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, values[i], string(item.Value), "Invalid value")
 	}
-
 }
 
 func Test_GetItemByID(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testGetItemByID(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testGetItemByID(t, q)
+	q.Drop()
+}
+
+func testGetItemByID(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
@@ -127,9 +166,16 @@ func Test_GetItemByID(t *testing.T) {
 }
 
 func Test_GetItemByOffset(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testGetItemByOffset(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testGetItemByOffset(t, q)
+	q.Drop()
+}
+
+func testGetItemByOffset(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
@@ -148,9 +194,16 @@ func Test_GetItemByOffset(t *testing.T) {
 }
 
 func Test_Prepend(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testPrepend(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testPrepend(t, q)
+	q.Drop()
+}
+
+func testPrepend(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4", "5"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
@@ -172,9 +225,16 @@ func Test_Prepend(t *testing.T) {
 }
 
 func Test_Length(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testLength(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testLength(t, q)
+	q.Drop()
+}
+
+func testLength(t *testing.T, q *Queue) {
 	values := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		values[i] = strconv.Itoa(i)
@@ -193,9 +253,16 @@ func Test_Length(t *testing.T) {
 }
 
 func Test_AddOpenTransactions(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testAddOpenTransactions(t, q)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testAddOpenTransactions(t, q)
+	q.Drop()
+}
+
+func testAddOpenTransactions(t *testing.T, q *Queue) {
 	q.AddOpenTransactions(1)
 	assert.Equal(t, int64(1), q.Stats.OpenTransactions)
 	q.AddOpenTransactions(-1)
@@ -203,9 +270,16 @@ func Test_AddOpenTransactions(t *testing.T) {
 }
 
 func Test_initialize(t *testing.T) {
-	q, _ := Open(name, dir)
-	defer q.Drop()
+	q, _ := Open(name, dir, &options)
+	testInitialize(t, q, &options)
+	q.Drop()
 
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testInitialize(t, q, &optionsWithKeyPrefix)
+	q.Drop()
+}
+
+func testInitialize(t *testing.T, q *Queue, opts *Options) {
 	q.Enqueue([]byte("1"))
 	q.Enqueue([]byte("2"))
 	q.Enqueue([]byte("3"))
@@ -218,7 +292,7 @@ func Test_initialize(t *testing.T) {
 
 	// Reopen queue and test if it initializes itself properly
 	q.Close()
-	q, err = Open(name, dir)
+	q, err = Open(name, dir, opts)
 	if err != nil {
 		t.Error("Queue initialization error: ", err)
 	}
@@ -229,7 +303,7 @@ func Test_initialize(t *testing.T) {
 }
 
 func Test_queuePath(t *testing.T) {
-	q, _ := Open("test_queue", dir)
+	q, _ := Open("test_queue", dir, &options)
 	defer q.Drop()
 	assert.Equal(t, "./test_data/test_queue", q.Path())
 }
