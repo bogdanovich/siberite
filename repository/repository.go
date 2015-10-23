@@ -60,7 +60,7 @@ func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
 		repo.Lock()
 		defer repo.Unlock()
 		if q, ok = repo.get(key); !ok {
-			q, err = queue.Open(key, repo.DataPath)
+			q, err = queue.Open(key, repo.DataPath, &queue.Options{})
 			if err != nil {
 				return nil, err
 			}
