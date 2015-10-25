@@ -2,7 +2,7 @@ Benchmark Details:
 * MacBook Pro CPU: 2.2 GHz Intel Core i7, RAM: 16 GB 1600 MHz DDR3, Disk: SSD
 * OS X Yosemite 10.10.5
 * Kestrel 2.4.8, Java 1.6.0_65, -Xmx1024m
-* Darner 0.2.5
+* Darner 0.2.5 [Innometrics/darner](https://github.com/Innometrics/darner) built with RocksDB
 * Siberite 0.4
 
 # Resident Memory
@@ -11,7 +11,7 @@ How much memory does the queue server use?  We are testing both steady-state mem
 the server acquires and releases memory as queues expand and contract.
 Kestrel memory settings: `-Xmx1024m`.
 
-![Resident Memory Benchmark](images/resident_memory_benchmark.png)
+![Resident Memory Benchmark](images/benchmark_resident_memory.png)
 
 ```
 $ ./mem_rss.sh
@@ -56,7 +56,7 @@ siberite    524048 requests: 74788 kB
 
 How quickly can we flood items through 10 queues?  This tests the raw throughput of the server.
 
-![Queue Flood Benchmark](images/queue_flood_benchmark.png)
+![Queue Flood Benchmark](images/benchmark_queue_flood.png)
 
 ```
 $ ./flood.sh
@@ -113,13 +113,13 @@ siberite    6000 conns: 22633.264009
 siberite    8000 conns: 19387.906547
 ```
 
-# Queue Packing
+# Queue Packing (1024 byte message size)
 
 This tests the queue server's behavior with a backlog of items.  The challenge for the queue server is to serve items
 that no longer all fit in memory.  Absolute throughput isn't important here - item sizes are large to quickly saturate
 free memory.  Instead it's important for the throughput to flatten out as the backlog grows.
 
-![Queue Packing Benchmark](images/queue_packing_benchmark.png)
+![Queue Packing Benchmark](images/benchmark_queue_packing_1024.png)
 
 
 ```
@@ -151,4 +151,92 @@ siberite   262144 sets: 11783.504995
 siberite  1048576 sets: 10107.638889
 siberite  4194304 sets: 10036.420823
 siberite  8388608 sets: 9868.384511
+```
+
+# Queue Packing and Unpacking (64 byte message size)
+
+The challenge for the queue server is to serve items that no longer all fit
+in memory. And to make sure that leveldb performance doesn't degrade because of
+large number of delete queries.
+
+![Queue Packing_Benchmark](images/benchmark_queue_packing_64.png)
+
+![Queue Unpacking Benchmark](images/benchmark_queue_unpacking_64.png)
+
+
+```
+kestrel | items:          0 | speed:    16927 ops/s
+kestrel | items:       1024 | speed:    16953 ops/s
+kestrel | items:      17408 | speed:    16717 ops/s
+kestrel | items:      82944 | speed:    16560 ops/s
+kestrel | items:     345088 | speed:    16492 ops/s
+kestrel | items:    1393664 | speed:    16731 ops/s
+kestrel | items:    5587968 | speed:    15302 ops/s
+kestrel | items:   13976576 | speed:    16144 ops/s
+kestrel | items:   30753792 | speed:    15779 ops/s
+kestrel | items:   64308224 | speed:    14888 ops/s
+kestrel | items:  131417088 | speed:    16094 ops/s
+kestrel | items:  265634816 | speed:    16846 ops/s
+kestrel | items:  243498574 | speed:    16907 ops/s
+kestrel | items:  221362340 | speed:    16874 ops/s
+kestrel | items:  199226106 | speed:    16956 ops/s
+kestrel | items:  177089872 | speed:    16826 ops/s
+kestrel | items:  154953638 | speed:    16819 ops/s
+kestrel | items:  132817404 | speed:    16924 ops/s
+kestrel | items:  110681170 | speed:    16942 ops/s
+kestrel | items:   88544936 | speed:    16940 ops/s
+kestrel | items:   66408702 | speed:    16953 ops/s
+kestrel | items:   44272468 | speed:    16159 ops/s
+kestrel | items:   22136234 | speed:    16928 ops/s
+kestrel | items:          0 | speed:    18098 ops/s
+
+darner | items:          0 | speed:    20223 ops/s
+darner | items:       1024 | speed:    19658 ops/s
+darner | items:      17408 | speed:    18686 ops/s
+darner | items:      82944 | speed:    17521 ops/s
+darner | items:     345088 | speed:    17248 ops/s
+darner | items:    1393664 | speed:    16978 ops/s
+darner | items:    5587968 | speed:    16299 ops/s
+darner | items:   13976576 | speed:    17190 ops/s
+darner | items:   30753792 | speed:    15707 ops/s
+darner | items:   64308224 | speed:    17279 ops/s
+darner | items:  131417088 | speed:    16091 ops/s
+darner | items:  265634816 | speed:    16080 ops/s
+darner | items:  243498574 | speed:    17390 ops/s
+darner | items:  221362340 | speed:    17705 ops/s
+darner | items:  199226106 | speed:    17944 ops/s
+darner | items:  177089872 | speed:    16877 ops/s
+darner | items:  154953638 | speed:    17661 ops/s
+darner | items:  132817404 | speed:    16966 ops/s
+darner | items:  110681170 | speed:    17402 ops/s
+darner | items:   88544936 | speed:    17008 ops/s
+darner | items:   66408702 | speed:    16710 ops/s
+darner | items:   44272468 | speed:    18028 ops/s
+darner | items:   22136234 | speed:    17244 ops/s
+darner | items:          0 | speed:    20864 ops/s
+
+siberite | items:          0 | speed:    16946 ops/s
+siberite | items:       1024 | speed:    16875 ops/s
+siberite | items:      17408 | speed:    16393 ops/s
+siberite | items:      82944 | speed:    15279 ops/s
+siberite | items:     345088 | speed:    15083 ops/s
+siberite | items:    1393664 | speed:    14756 ops/s
+siberite | items:    5587968 | speed:    14020 ops/s
+siberite | items:   13976576 | speed:    14729 ops/s
+siberite | items:   30753792 | speed:    14204 ops/s
+siberite | items:   64308224 | speed:    14552 ops/s
+siberite | items:  131417088 | speed:    12908 ops/s
+siberite | items:  265634816 | speed:    13490 ops/s
+siberite | items:  243498574 | speed:    14021 ops/s
+siberite | items:  221362340 | speed:    14382 ops/s
+siberite | items:  199226106 | speed:    14438 ops/s
+siberite | items:  177089872 | speed:    13233 ops/s
+siberite | items:  154953638 | speed:    14254 ops/s
+siberite | items:  132817404 | speed:    14904 ops/s
+siberite | items:  110681170 | speed:    14793 ops/s
+siberite | items:   88544936 | speed:    14720 ops/s
+siberite | items:   66408702 | speed:    14968 ops/s
+siberite | items:   44272468 | speed:    14872 ops/s
+siberite | items:   22136234 | speed:    14757 ops/s
+siberite | items:          0 | speed:    16968 ops/s
 ```
