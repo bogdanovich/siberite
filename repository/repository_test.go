@@ -112,11 +112,11 @@ func Test_GetQueue(t *testing.T) {
 	assert.Equal(t, 2, repo.Count())
 
 	_, err = repo.GetQueue("test:test")
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
 	assert.Equal(t, 2, repo.Count())
 
 	_, err = repo.GetQueue("testtest!@#$%^&*-=")
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
 	assert.Equal(t, 2, repo.Count())
 }
 

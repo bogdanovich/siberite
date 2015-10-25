@@ -13,6 +13,12 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+// Consumer represents a queue consumer
+type Consumer interface {
+	GetNext() ([]byte, error)
+	PutBack([]byte) error
+}
+
 // Queue represents a persistent FIFO structure
 // that stores the data in leveldb
 type Queue struct {
@@ -41,7 +47,6 @@ type Stats struct {
 type Item struct {
 	Key   []byte
 	Value []byte
-	Size  int32
 }
 
 // Open creates a queue and opens underlying leveldb database
@@ -128,7 +133,7 @@ func (q *Queue) Prepend(item *Item) error {
 	q.Lock()
 	defer q.Unlock()
 	if q.head < 1 {
-		return errors.New("Queue head can not be less then zero")
+		return errors.New("queue: head can not be less then zero")
 	}
 	key := q.dbKey(q.head)
 	err := q.db.Put(key, item.Value, nil)
@@ -141,12 +146,15 @@ func (q *Queue) Prepend(item *Item) error {
 // GetItemByID returns an item by it's id
 func (q *Queue) GetItemByID(id uint64) (*Item, error) {
 	if id <= q.head || id > q.tail {
-		return &Item{nil, nil, 0}, errors.New("Id should be between head and tail")
+		if q.length() < 1 {
+			return &Item{nil, nil}, errors.New("queue: is empty")
+		}
+		return &Item{nil, nil}, errors.New("queue: out of bounds")
 	}
 
 	key := q.dbKey(id)
 	value, err := q.db.Get(key, nil)
-	item := &Item{key, value, int32(len(value))}
+	item := &Item{key, value}
 	return item, err
 }
 
@@ -165,15 +173,26 @@ func (q *Queue) Path() string {
 	return q.DataDir + "/" + q.Name
 }
 
+// GetNext returns next item value
+func (q *Queue) GetNext() ([]byte, error) {
+	item, err := q.Dequeue()
+	return item.Value, err
+}
+
+// PutBack returns value to the queue
+func (q *Queue) PutBack(value []byte) error {
+	return q.Prepend(&Item{nil, value})
+}
+
 func (q *Queue) open() error {
 	q.Lock()
 	defer q.Unlock()
 	if regexp.MustCompile(`[^a-zA-Z0-9_]+`).MatchString(q.Name) {
-		return errors.New("Queue name is not alphanumeric")
+		return errors.New("queue: name is not alphanumeric")
 	}
 
 	if len(q.Name) > 100 {
-		return errors.New("Queue name is too long")
+		return errors.New("queue: name is too long")
 	}
 
 	o := opt.Options{
