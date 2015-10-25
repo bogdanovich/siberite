@@ -143,7 +143,7 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	for pair := range repo.storage.IterBuffered() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
-		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})
+		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenReads)})
 	}
 	return stats
 }

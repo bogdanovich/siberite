@@ -1,53 +1,79 @@
 package queue
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var dir = "./test_data"
 var name = "test"
+var sharedDBName = "test_shared"
+var sharedDBPath = dir + "/" + sharedDBName
 var options = Options{}
 var optionsWithKeyPrefix = Options{KeyPrefix: []byte("queue_key:")}
 var err error
 
+type testQueue func(*Queue)
+
+func withSharedQueues(t *testing.T, fn testQueue) {
+	db, err := leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes := []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues := make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, keyPrefix, db)
+		assert.NoError(t, err)
+		fn(queues[i])
+	}
+	db.Close()
+	os.RemoveAll(dir)
+}
+
 func TestMain(m *testing.M) {
+	os.RemoveAll(dir)
 	result := m.Run()
-	err = os.RemoveAll(dir)
+	os.RemoveAll(dir)
 	os.Exit(result)
 }
 
 func Test_Open(t *testing.T) {
-	q, err := Open(name, dir, &options)
-	assert.Nil(t, err)
-	testOpen(t, q)
-	q.Drop()
-
-	// with KeyPrefix
-	q, err = Open("with_prefix", dir, &optionsWithKeyPrefix)
-	assert.Nil(t, err)
-	testOpen(t, q)
-	q.Drop()
-
 	invalidQueueName := "%@#*(&($%@#"
-	q, err = Open(invalidQueueName, dir, &options)
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	q, err := Open(invalidQueueName, dir, &options)
+	assert.EqualError(t, err, "queue: name is not alphanumeric")
 	q.Drop()
 
 	invalidQueueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
 		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	q, err = Open(invalidQueueName, dir, &options)
-	assert.Equal(t, "Queue name is too long", err.Error())
+	assert.EqualError(t, err, "queue: name is too long")
 	q.Drop()
+
+	q, err = Open(name, dir, &options)
+	assert.NoError(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	// with KeyPrefix
+	q, err = Open("with_prefix", dir, &optionsWithKeyPrefix)
+	assert.NoError(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testOpen(t, q)
+	})
+
 }
 
 func testOpen(t *testing.T, q *Queue) {
-	assert.Equal(t, uint64(0), q.Head(), "Invalid initial queue state")
-	assert.Equal(t, uint64(0), q.Tail(), "Invalid initial queue state")
-	assert.Equal(t, uint64(0), q.Length(), "Invalid initial queue state")
+	assert.EqualValues(t, 0, q.Head(), "Invalid initial queue state")
+	assert.EqualValues(t, 0, q.Tail(), "Invalid initial queue state")
+	assert.EqualValues(t, 0, q.Length(), "Invalid initial queue state")
 }
 
 func Test_Drop(t *testing.T) {
@@ -65,6 +91,10 @@ func Test_HeadAndTail(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testHeadAndTail(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testHeadAndTail(t, q)
+	})
 }
 
 func testHeadAndTail(t *testing.T, q *Queue) {
@@ -72,14 +102,14 @@ func testHeadAndTail(t *testing.T, q *Queue) {
 
 	for i := 1; i <= queueLength; i++ {
 		_ = q.Enqueue([]byte("1"))
-		assert.Equal(t, uint64(0), q.Head())
-		assert.Equal(t, uint64(i), q.Tail())
+		assert.EqualValues(t, 0, q.Head())
+		assert.EqualValues(t, i, q.Tail())
 	}
 
 	for i := 1; i <= queueLength; i++ {
-		_, _ = q.Dequeue()
-		assert.Equal(t, uint64(i), q.Head())
-		assert.Equal(t, uint64(queueLength), q.Tail())
+		_, _ = q.GetNext()
+		assert.EqualValues(t, i, q.Head())
+		assert.EqualValues(t, queueLength, q.Tail())
 	}
 }
 
@@ -91,17 +121,21 @@ func Test_Peek(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testPeek(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testPeek(t, q)
+	})
 }
 
 func testPeek(t *testing.T, q *Queue) {
 	inputValue := "1"
 	err = q.Enqueue([]byte(inputValue))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
-		item, err := q.Peek()
+		value, err := q.Peek()
 		assert.Nil(t, err)
-		assert.Equal(t, inputValue, string(item.Value), "Invalid value")
+		assert.Equal(t, inputValue, string(value), "Invalid value")
 	}
 }
 
@@ -113,12 +147,14 @@ func Test_EnqueueDequeueLength(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testEnqueueDequeueLength(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testEnqueueDequeueLength(t, q)
+	})
 }
 
 func testEnqueueDequeueLength(t *testing.T, q *Queue) {
-	if q.Length() != 0 {
-		t.Error("Invalid initial length")
-	}
+	assert.NotEqual(t, 0, q.Length(), "Invalid initial length")
 
 	values := make([]string, 10)
 	for i := 0; i < 10; i++ {
@@ -126,147 +162,222 @@ func testEnqueueDequeueLength(t *testing.T, q *Queue) {
 	}
 
 	for i := 0; i < len(values); i++ {
-		assert.Equal(t, uint64(i), q.Length())
+		assert.EqualValues(t, i, q.Length())
 		q.Enqueue([]byte(values[i]))
 	}
 
 	for i := 0; i < len(values); i++ {
-		item, err := q.Dequeue()
+		value, err := q.GetNext()
 		assert.Nil(t, err)
-		assert.Equal(t, values[i], string(item.Value), "Invalid value")
+		assert.Equal(t, values[i], string(value), "Invalid value")
 	}
 }
 
-func Test_GetItemByID(t *testing.T) {
+func Test_GetNext(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testGetItemByID(t, q)
+	testGetNext(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testGetItemByID(t, q)
+	testGetNext(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testGetNext(t, q)
+	})
 }
 
-func testGetItemByID(t *testing.T, q *Queue) {
+func testGetNext(t *testing.T, q *Queue) {
+	values := []string{"1", "2"}
+	for i := 0; i < len(values); i++ {
+		q.Enqueue([]byte(values[i]))
+	}
+
+	value, err := q.GetNext()
+	assert.Nil(t, err)
+	assert.Equal(t, "1", string(value))
+
+	value, err = q.GetNext()
+	assert.Nil(t, err)
+	assert.Equal(t, "2", string(value))
+
+	value, err = q.GetNext()
+	assert.EqualError(t, err, "queue: is empty")
+}
+
+func Test_PutBack(t *testing.T) {
+	q, _ := Open(name, dir, &options)
+	testPutBack(t, q)
+	q.Drop()
+
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testPutBack(t, q)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testPutBack(t, q)
+	})
+}
+
+func testPutBack(t *testing.T, q *Queue) {
+	values := []string{"1", "2"}
+	for i := 0; i < len(values); i++ {
+		q.Enqueue([]byte(values[i]))
+	}
+
+	err = q.PutBack([]byte("0"))
+	assert.EqualError(t, err, "queue: head can not be less then zero")
+
+	// get 1
+	q.GetNext()
+	// get 2
+	value, err := q.GetNext()
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, 2, q.Head())
+
+	err = q.PutBack(value)
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, 1, q.Head())
+
+	// Check that we get the same item with the next GetNext
+	value, _ = q.GetNext()
+	assert.Equal(t, "2", string(value))
+}
+
+func Test_ReadItemByID(t *testing.T) {
+	q, _ := Open(name, dir, &options)
+	testReadItemByID(t, q)
+	q.Drop()
+
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testReadItemByID(t, q)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testReadItemByID(t, q)
+	})
+}
+
+func testReadItemByID(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
 	}
 
-	item, err := q.GetItemByID(q.Head() + 1)
+	item, err := q.ReadItemByID(q.Head() + 1)
 	assert.Nil(t, err)
+	assert.EqualValues(t, q.Head()+1, item.ID)
 	assert.Equal(t, "1", string(item.Value))
 
-	item, err = q.GetItemByID(q.Head() + 3)
+	item, err = q.ReadItemByID(q.Head() + 3)
 	assert.Nil(t, err)
+	assert.EqualValues(t, q.Head()+3, item.ID)
 	assert.Equal(t, "3", string(item.Value))
 
-	item, err = q.GetItemByID(q.Head() + 5)
-	assert.Equal(t, "Id should be between head and tail", err.Error())
+	item, err = q.ReadItemByID(q.Head() + 5)
+	assert.Equal(t, "queue: ID is out of bounds", err.Error())
 }
 
-func Test_GetItemByOffset(t *testing.T) {
+func Test_ReadItemByOffset(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testGetItemByOffset(t, q)
+	testReadItemByOffset(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testGetItemByOffset(t, q)
+	testReadItemByOffset(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testReadItemByOffset(t, q)
+	})
 }
 
-func testGetItemByOffset(t *testing.T, q *Queue) {
+func testReadItemByOffset(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
 	}
 
-	item, err := q.GetItemByOffset(0)
+	item, err := q.ReadItemByOffset(0)
 	assert.Nil(t, err)
+	assert.Equal(t, q.Head()+1, item.ID)
 	assert.Equal(t, "1", string(item.Value))
 
-	item, err = q.GetItemByOffset(2)
+	item, err = q.ReadItemByOffset(2)
 	assert.Nil(t, err)
+	assert.Equal(t, q.Head()+1+2, item.ID)
 	assert.Equal(t, "3", string(item.Value))
 
-	item, err = q.GetItemByOffset(5)
-	assert.Equal(t, "Id should be between head and tail", err.Error())
+	item, err = q.ReadItemByOffset(5)
+	assert.Equal(t, "queue: ID is out of bounds", err.Error())
 }
 
-func Test_Prepend(t *testing.T) {
+func Test_LengthAndIsEmpty(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testPrepend(t, q)
+	testLengthAndIsEmpty(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testPrepend(t, q)
+	testLengthAndIsEmpty(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testLengthAndIsEmpty(t, q)
+	})
 }
 
-func testPrepend(t *testing.T, q *Queue) {
-	values := []string{"1", "2", "3", "4", "5"}
+func testLengthAndIsEmpty(t *testing.T, q *Queue) {
+	values := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		values[i] = strconv.Itoa(i)
+	}
+	assert.True(t, q.IsEmpty())
+
 	for i := 0; i < len(values); i++ {
+		assert.EqualValues(t, i, q.Length())
 		q.Enqueue([]byte(values[i]))
 	}
 
-	item, _ := q.Dequeue()
-	q.Dequeue()
-
-	assert.Equal(t, uint64(2), q.Head())
-
-	err = q.Prepend(item)
-	assert.Nil(t, err)
-
-	assert.Equal(t, uint64(1), q.Head())
-
-	// Check that we get the same item with the next Dequeue
-	item, _ = q.Dequeue()
-	assert.Equal(t, "1", string(item.Value))
+	for i := len(values); i > 0; i-- {
+		assert.EqualValues(t, i, q.Length())
+		_, err := q.GetNext()
+		assert.Nil(t, err)
+	}
+	assert.True(t, q.IsEmpty())
 }
 
-func Test_Length(t *testing.T) {
+func Test_DeleteAll(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testLength(t, q)
+	testDeleteAll(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testLength(t, q)
+	testDeleteAll(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testDeleteAll(t, q)
+	})
 }
 
-func testLength(t *testing.T, q *Queue) {
+func testDeleteAll(t *testing.T, q *Queue) {
 	values := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		values[i] = strconv.Itoa(i)
 	}
 
 	for i := 0; i < len(values); i++ {
-		assert.Equal(t, uint64(i), q.Length())
+		assert.EqualValues(t, i, q.Length())
 		q.Enqueue([]byte(values[i]))
 	}
 
-	for i := len(values); i < 0; i-- {
-		_, err := q.Dequeue()
-		assert.Nil(t, err)
-		assert.Equal(t, uint64(i), q.Length())
-	}
-}
-
-func Test_AddOpenTransactions(t *testing.T) {
-	q, _ := Open(name, dir, &options)
-	testAddOpenTransactions(t, q)
-	q.Drop()
-
-	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testAddOpenTransactions(t, q)
-	q.Drop()
-}
-
-func testAddOpenTransactions(t *testing.T, q *Queue) {
-	q.AddOpenTransactions(1)
-	assert.Equal(t, int64(1), q.Stats.OpenTransactions)
-	q.AddOpenTransactions(-1)
-	assert.Equal(t, int64(0), q.Stats.OpenTransactions)
+	assert.EqualValues(t, 10, q.Length())
+	err = q.DeleteAll()
+	assert.NoError(t, err)
+	fmt.Println(q.Length())
+	assert.True(t, q.IsEmpty())
 }
 
 func Test_initialize(t *testing.T) {
@@ -284,7 +395,7 @@ func testInitialize(t *testing.T, q *Queue, opts *Options) {
 	q.Enqueue([]byte("2"))
 	q.Enqueue([]byte("3"))
 
-	assert.Equal(t, uint64(3), q.Length())
+	assert.EqualValues(t, 3, q.Length())
 
 	expectedLength := q.Length()
 	expectedHead := q.Head()
@@ -297,9 +408,46 @@ func testInitialize(t *testing.T, q *Queue, opts *Options) {
 		t.Error("Queue initialization error: ", err)
 	}
 
-	assert.Equal(t, uint64(expectedLength), q.Length())
-	assert.Equal(t, uint64(expectedHead), q.Head())
-	assert.Equal(t, uint64(expectedTail), q.Tail())
+	assert.EqualValues(t, expectedLength, q.Length())
+	assert.EqualValues(t, expectedHead, q.Head())
+	assert.EqualValues(t, expectedTail, q.Tail())
+}
+
+func Test_initializeShared(t *testing.T) {
+	// store some data
+	db, err := leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes := []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues := make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, keyPrefix, db)
+		assert.NoError(t, err)
+
+		queues[i].Enqueue([]byte("1"))
+		queues[i].Enqueue([]byte("2"))
+		queues[i].Enqueue([]byte("3"))
+		queues[i].Enqueue([]byte("4"))
+
+		// read one value
+		queues[i].GetNext()
+
+		assert.EqualValues(t, 3, queues[i].Length())
+	}
+	db.Close()
+
+	// initialize again
+	db, err = leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes = []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues = make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, keyPrefix, db)
+		assert.NoError(t, err)
+
+		assert.EqualValues(t, 3, queues[i].Length())
+		assert.EqualValues(t, 1, queues[i].Head())
+		assert.EqualValues(t, 4, queues[i].Tail())
+	}
+	db.Close()
+
 }
 
 func Test_queuePath(t *testing.T) {

@@ -6,12 +6,23 @@ import (
 	"os"
 	"regexp"
 	"sync"
-	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
+
+// Consumer represents a queue consumer
+type Consumer interface {
+	GetNext() ([]byte, error)
+	PutBack([]byte) error
+	Peek() ([]byte, error)
+	Length() uint64
+	IsEmpty() bool
+}
+
+// make sure Queue implements Consumer interface
+var _ Consumer = (*Queue)(nil)
 
 // Queue represents a persistent FIFO structure
 // that stores the data in leveldb
@@ -25,6 +36,7 @@ type Queue struct {
 	head     uint64
 	tail     uint64
 	isOpened bool
+	isShared bool
 }
 
 // Options represents queue options
@@ -32,16 +44,11 @@ type Options struct {
 	KeyPrefix []byte
 }
 
-// Stats contains queue level stats
-type Stats struct {
-	OpenTransactions int64
-}
-
 // Item represents a queue item
 type Item struct {
+	ID    uint64
 	Key   []byte
 	Value []byte
-	Size  int32
 }
 
 // Open creates a queue and opens underlying leveldb database
@@ -55,22 +62,42 @@ func Open(name string, dataDir string, opts *Options) (*Queue, error) {
 		head:     0,
 		tail:     0,
 		isOpened: false,
+		isShared: false,
+	}
+	return q, q.open()
+}
+
+// OpenShared creates and initializes a queue from opened leveldb database
+func OpenShared(name string, keyPrefix string, db *leveldb.DB) (*Queue, error) {
+
+	q := &Queue{
+		Name:     name,
+		DataDir:  "",
+		Stats:    &Stats{0},
+		db:       db,
+		opts:     &Options{KeyPrefix: []byte(keyPrefix)},
+		head:     0,
+		tail:     0,
+		isOpened: false,
+		isShared: true,
 	}
 	return q, q.open()
 }
 
 // Close leveldb database
 func (q *Queue) Close() {
-	if q.isOpened {
+	if q.isOpened && !q.isShared {
 		q.db.Close()
-		q.isOpened = false
 	}
+	q.isOpened = false
 }
 
 // Drop closes and deletes leveldb database
 func (q *Queue) Drop() {
 	q.Close()
-	os.RemoveAll(q.Path())
+	if !q.isShared {
+		os.RemoveAll(q.Path())
+	}
 }
 
 // Head returns current head offset of the queue
@@ -86,11 +113,9 @@ func (q *Queue) Length() uint64 {
 	return q.length()
 }
 
-// Peek returns next queue item without removing it from the queue
-func (q *Queue) Peek() (*Item, error) {
-	q.RLock()
-	defer q.RUnlock()
-	return q.GetItemByID(q.head + 1)
+// IsEmpty returns false if queue is empty
+func (q *Queue) IsEmpty() bool {
+	return q.Length() < 1
 }
 
 // Enqueue adds new value to the queue
@@ -98,66 +123,101 @@ func (q *Queue) Enqueue(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 
-	key := q.dbKey(q.tail + 1)
-	err := q.db.Put(key, value, nil)
+	err := q.db.Put(q.dbKey(q.tail+1), value, nil)
 	if err == nil {
 		q.tail++
 	}
 	return err
 }
 
-// Dequeue returns next queue item and removes it from the queue
-func (q *Queue) Dequeue() (*Item, error) {
+// GetNext returns next value from queue
+func (q *Queue) GetNext() ([]byte, error) {
 	q.Lock()
 	defer q.Unlock()
 
-	item, err := q.GetItemByID(q.head + 1)
+	item, err := q.readItemByID(q.head + 1)
 	if err != nil {
-		return item, err
+		return item.Value, err
 	}
 
 	err = q.db.Delete(item.Key, nil)
 	if err == nil {
 		q.head++
 	}
-	return item, err
+	return item.Value, err
 }
 
-// Prepend adds new item as a first element of the queue
-func (q *Queue) Prepend(item *Item) error {
+// PutBack returns value to the queue
+func (q *Queue) PutBack(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 	if q.head < 1 {
-		return errors.New("Queue head can not be less then zero")
+		return errors.New("queue: head can not be less then zero")
 	}
-	key := q.dbKey(q.head)
-	err := q.db.Put(key, item.Value, nil)
+	err := q.db.Put(q.dbKey(q.head), value, nil)
 	if err == nil {
 		q.head--
 	}
 	return err
 }
 
-// GetItemByID returns an item by it's id
-func (q *Queue) GetItemByID(id uint64) (*Item, error) {
+// Peek returns next value without removing it from the queue
+func (q *Queue) Peek() ([]byte, error) {
+	q.RLock()
+	defer q.RUnlock()
+	item, err := q.readItemByID(q.head + 1)
+	return item.Value, err
+}
+
+// ReadItemByID returns a value by it's id
+func (q *Queue) ReadItemByID(id uint64) (*Item, error) {
+	q.RLock()
+	q.RUnlock()
+	return q.readItemByID(id)
+}
+
+func (q *Queue) readItemByID(id uint64) (*Item, error) {
 	if id <= q.head || id > q.tail {
-		return &Item{nil, nil, 0}, errors.New("Id should be between head and tail")
+		if q.length() < 1 {
+			return &Item{}, errors.New("queue: is empty")
+		}
+		return &Item{}, errors.New("queue: ID is out of bounds")
 	}
 
-	key := q.dbKey(id)
-	value, err := q.db.Get(key, nil)
-	item := &Item{key, value, int32(len(value))}
+	var err error
+	item := &Item{ID: id, Key: q.dbKey(id)}
+	item.Value, err = q.db.Get(item.Key, nil)
 	return item, err
 }
 
-// GetItemByOffset returns an item by offset from the queue head, starting from 0.
-func (q *Queue) GetItemByOffset(offset uint64) (*Item, error) {
-	return q.GetItemByID(q.head + 1 + offset)
+// ReadItemByOffset returns an item by offset from the queue head, starting from 0.
+func (q *Queue) ReadItemByOffset(offset uint64) (*Item, error) {
+	q.RLock()
+	q.RUnlock()
+	return q.readItemByID(q.head + 1 + offset)
 }
 
-// AddOpenTransactions increments OpenTransactions stats item
-func (q *Queue) AddOpenTransactions(value int64) {
-	atomic.AddInt64(&q.Stats.OpenTransactions, value)
+// DeleteAll deletes all items from the queue.
+// This is expensive operation. If you want to drop all elements,
+// it's better to close the queue and leveldb folder
+func (q *Queue) DeleteAll() error {
+	q.Lock()
+	defer q.Unlock()
+
+	iter := q.db.NewIterator(util.BytesPrefix(q.opts.KeyPrefix), nil)
+	defer iter.Release()
+	var err error
+
+	batch := new(leveldb.Batch)
+
+	for iter.Next() {
+		batch.Delete(iter.Key())
+	}
+	err = q.db.Write(batch, nil)
+	if err != nil {
+		return err
+	}
+	return q.initialize()
 }
 
 // Path returns leveldb database file path
@@ -169,17 +229,19 @@ func (q *Queue) open() error {
 	q.Lock()
 	defer q.Unlock()
 	if regexp.MustCompile(`[^a-zA-Z0-9_]+`).MatchString(q.Name) {
-		return errors.New("Queue name is not alphanumeric")
+		return errors.New("queue: name is not alphanumeric")
 	}
 
 	if len(q.Name) > 100 {
-		return errors.New("Queue name is too long")
+		return errors.New("queue: name is too long")
 	}
 
-	var err error
-	q.db, err = leveldb.OpenFile(q.Path(), &opt.Options{})
-	if err != nil {
-		return err
+	if !q.isShared {
+		var err error
+		q.db, err = leveldb.OpenFile(q.Path(), &opt.Options{})
+		if err != nil {
+			return err
+		}
 	}
 	q.isOpened = true
 	return q.initialize()
@@ -195,7 +257,6 @@ func (q *Queue) dbKey(id uint64) []byte {
 	copy(key[0:len(q.opts.KeyPrefix)], q.opts.KeyPrefix)
 	binary.BigEndian.PutUint64(key[len(q.opts.KeyPrefix):], id)
 	return key
-
 }
 
 func (q *Queue) dbKeyToID(key []byte) uint64 {
@@ -212,10 +273,14 @@ func (q *Queue) initialize() error {
 
 	if iter.First() {
 		q.head = q.dbKeyToID(iter.Key()) - 1
+	} else {
+		q.head = 0
 	}
 
 	if iter.Last() {
 		q.tail = q.dbKeyToID(iter.Key())
+	} else {
+		q.tail = 0
 	}
 
 	return iter.Error()

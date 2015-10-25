@@ -13,6 +13,7 @@ var dir = "./test_data"
 var name = "test"
 
 func TestMain(m *testing.M) {
+	os.RemoveAll(dir)
 	err = os.MkdirAll(dir, 0777)
 	if err != nil {
 		fmt.Println(err)
@@ -36,7 +37,7 @@ func Test_Initialize(t *testing.T) {
 			q.Enqueue([]byte("value"))
 		}
 		// Get one element out
-		_, _ = q.Dequeue()
+		_, _ = q.GetNext()
 	}
 
 	// Close all queues and destroy repo
@@ -51,9 +52,9 @@ func Test_Initialize(t *testing.T) {
 
 	for i := 0; i < len(queueNames); i++ {
 		q, _ = repo.GetQueue(queueNames[i])
-		assert.Equal(t, uint64(1), q.Head(), "Invalid queue initialization")
-		assert.Equal(t, uint64(totalItems), q.Tail(), "Invalid queue initialization")
-		assert.Equal(t, uint64(totalItems-1), q.Length(), "Invalid queue initialization")
+		assert.EqualValues(t, 1, q.Head(), "Invalid queue initialization")
+		assert.EqualValues(t, totalItems, q.Tail(), "Invalid queue initialization")
+		assert.EqualValues(t, totalItems-1, q.Length(), "Invalid queue initialization")
 	}
 	repo.DeleteAllQueues()
 }
@@ -112,11 +113,11 @@ func Test_GetQueue(t *testing.T) {
 	assert.Equal(t, 2, repo.Count())
 
 	_, err = repo.GetQueue("test:test")
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
 	assert.Equal(t, 2, repo.Count())
 
 	_, err = repo.GetQueue("testtest!@#$%^&*-=")
-	assert.Equal(t, "Queue name is not alphanumeric", err.Error())
+	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
 	assert.Equal(t, 2, repo.Count())
 }
 

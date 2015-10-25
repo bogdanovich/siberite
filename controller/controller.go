@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bogdanovich/siberite/queue"
 	"github.com/bogdanovich/siberite/repository"
 )
 
@@ -24,7 +23,7 @@ type Controller struct {
 	conn           Conn
 	rw             *bufio.ReadWriter
 	repo           *repository.QueueRepository
-	currentItem    *queue.Item
+	currentValue   []byte
 	currentCommand *Command
 }
 
@@ -46,7 +45,7 @@ func NewSession(conn Conn, repo *repository.QueueRepository) *Controller {
 
 // FinishSession aborts unfinished transaction
 func (c *Controller) FinishSession() {
-	if c.currentItem != nil {
+	if c.currentValue != nil {
 		c.abort(c.currentCommand)
 	}
 	atomic.AddUint64(&c.repo.Stats.CurrentConnections, ^uint64(0))
@@ -71,7 +70,7 @@ func (c *Controller) SendError(errorMessage string) {
 }
 
 // Save current unconfirmed item
-func (c *Controller) setCurrentState(cmd *Command, item *queue.Item) {
+func (c *Controller) setCurrentState(cmd *Command, currentValue []byte) {
 	c.currentCommand = cmd
-	c.currentItem = item
+	c.currentValue = currentValue
 }
