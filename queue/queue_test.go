@@ -77,7 +77,7 @@ func testHeadAndTail(t *testing.T, q *Queue) {
 	}
 
 	for i := 1; i <= queueLength; i++ {
-		_, _ = q.Dequeue()
+		_, _ = q.GetNext()
 		assert.Equal(t, uint64(i), q.Head())
 		assert.Equal(t, uint64(queueLength), q.Tail())
 	}
@@ -99,9 +99,9 @@ func testPeek(t *testing.T, q *Queue) {
 	assert.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
-		item, err := q.Peek()
+		value, err := q.Peek()
 		assert.Nil(t, err)
-		assert.Equal(t, inputValue, string(item.Value), "Invalid value")
+		assert.Equal(t, inputValue, string(value), "Invalid value")
 	}
 }
 
@@ -129,9 +129,9 @@ func testEnqueueDequeueLength(t *testing.T, q *Queue) {
 	}
 
 	for i := 0; i < len(values); i++ {
-		item, err := q.Dequeue()
+		value, err := q.GetNext()
 		assert.Nil(t, err)
-		assert.Equal(t, values[i], string(item.Value), "Invalid value")
+		assert.Equal(t, values[i], string(value), "Invalid value")
 	}
 }
 
@@ -200,91 +200,60 @@ func testPutBack(t *testing.T, q *Queue) {
 	assert.Equal(t, "2", string(value))
 }
 
-func Test_GetItemByID(t *testing.T) {
+func Test_ReadValueByID(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testGetItemByID(t, q)
+	testReadValueByID(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testGetItemByID(t, q)
+	testReadValueByID(t, q)
 	q.Drop()
 }
 
-func testGetItemByID(t *testing.T, q *Queue) {
+func testReadValueByID(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
 	}
 
-	item, err := q.GetItemByID(q.Head() + 1)
+	value, err := q.ReadValueByID(q.Head() + 1)
 	assert.Nil(t, err)
-	assert.Equal(t, "1", string(item.Value))
+	assert.Equal(t, "1", string(value))
 
-	item, err = q.GetItemByID(q.Head() + 3)
+	value, err = q.ReadValueByID(q.Head() + 3)
 	assert.Nil(t, err)
-	assert.Equal(t, "3", string(item.Value))
+	assert.Equal(t, "3", string(value))
 
-	item, err = q.GetItemByID(q.Head() + 5)
+	value, err = q.ReadValueByID(q.Head() + 5)
 	assert.Equal(t, "queue: out of bounds", err.Error())
 }
 
-func Test_GetItemByOffset(t *testing.T) {
+func Test_ReadValueByOffset(t *testing.T) {
 	q, _ := Open(name, dir, &options)
-	testGetItemByOffset(t, q)
+	testReadValueByOffset(t, q)
 	q.Drop()
 
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testGetItemByOffset(t, q)
+	testReadValueByOffset(t, q)
 	q.Drop()
 }
 
-func testGetItemByOffset(t *testing.T, q *Queue) {
+func testReadValueByOffset(t *testing.T, q *Queue) {
 	values := []string{"1", "2", "3", "4"}
 	for i := 0; i < len(values); i++ {
 		q.Enqueue([]byte(values[i]))
 	}
 
-	item, err := q.GetItemByOffset(0)
+	value, err := q.ReadValueByOffset(0)
 	assert.Nil(t, err)
-	assert.Equal(t, "1", string(item.Value))
+	assert.Equal(t, "1", string(value))
 
-	item, err = q.GetItemByOffset(2)
+	value, err = q.ReadValueByOffset(2)
 	assert.Nil(t, err)
-	assert.Equal(t, "3", string(item.Value))
+	assert.Equal(t, "3", string(value))
 
-	item, err = q.GetItemByOffset(5)
+	value, err = q.ReadValueByOffset(5)
 	assert.Equal(t, "queue: out of bounds", err.Error())
-}
-
-func Test_Prepend(t *testing.T) {
-	q, _ := Open(name, dir, &options)
-	testPrepend(t, q)
-	q.Drop()
-
-	q, _ = Open(name, dir, &optionsWithKeyPrefix)
-	testPrepend(t, q)
-	q.Drop()
-}
-
-func testPrepend(t *testing.T, q *Queue) {
-	values := []string{"1", "2", "3", "4", "5"}
-	for i := 0; i < len(values); i++ {
-		q.Enqueue([]byte(values[i]))
-	}
-
-	item, _ := q.Dequeue()
-	q.Dequeue()
-
-	assert.Equal(t, uint64(2), q.Head())
-
-	err = q.Prepend(item)
-	assert.Nil(t, err)
-
-	assert.Equal(t, uint64(1), q.Head())
-
-	// Check that we get the same item with the next Dequeue
-	item, _ = q.Dequeue()
-	assert.Equal(t, "1", string(item.Value))
 }
 
 func Test_Length(t *testing.T) {
@@ -309,7 +278,7 @@ func testLength(t *testing.T, q *Queue) {
 	}
 
 	for i := len(values); i < 0; i-- {
-		_, err := q.Dequeue()
+		_, err := q.GetNext()
 		assert.Nil(t, err)
 		assert.Equal(t, uint64(i), q.Length())
 	}

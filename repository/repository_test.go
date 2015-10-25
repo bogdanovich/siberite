@@ -36,7 +36,7 @@ func Test_Initialize(t *testing.T) {
 			q.Enqueue([]byte("value"))
 		}
 		// Get one element out
-		_, _ = q.Dequeue()
+		_, _ = q.GetNext()
 	}
 
 	// Close all queues and destroy repo
