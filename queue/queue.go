@@ -44,7 +44,7 @@ type Stats struct {
 }
 
 // Item represents a queue item
-type Item struct {
+type item struct {
 	Key   []byte
 	Value []byte
 }
@@ -91,13 +91,6 @@ func (q *Queue) Length() uint64 {
 	return q.length()
 }
 
-// Peek returns next queue item without removing it from the queue
-func (q *Queue) Peek() (*Item, error) {
-	q.RLock()
-	defer q.RUnlock()
-	return q.GetItemByID(q.head + 1)
-}
-
 // Enqueue adds new value to the queue
 func (q *Queue) Enqueue(value []byte) error {
 	q.Lock()
@@ -111,56 +104,68 @@ func (q *Queue) Enqueue(value []byte) error {
 	return err
 }
 
-// Dequeue returns next queue item and removes it from the queue
-func (q *Queue) Dequeue() (*Item, error) {
+// GetNext returns next value from queue
+func (q *Queue) GetNext() ([]byte, error) {
 	q.Lock()
 	defer q.Unlock()
 
-	item, err := q.GetItemByID(q.head + 1)
+	item, err := q.readValueByID(q.head + 1)
 	if err != nil {
-		return item, err
+		return item.Value, err
 	}
 
 	err = q.db.Delete(item.Key, nil)
 	if err == nil {
 		q.head++
 	}
-	return item, err
+	return item.Value, err
 }
 
-// Prepend adds new item as a first element of the queue
-func (q *Queue) Prepend(item *Item) error {
+// PutBack returns value to the queue
+func (q *Queue) PutBack(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 	if q.head < 1 {
 		return errors.New("queue: head can not be less then zero")
 	}
 	key := q.dbKey(q.head)
-	err := q.db.Put(key, item.Value, nil)
+	err := q.db.Put(key, value, nil)
 	if err == nil {
 		q.head--
 	}
 	return err
 }
 
-// GetItemByID returns an item by it's id
-func (q *Queue) GetItemByID(id uint64) (*Item, error) {
+// Peek returns next value without removing it from the queue
+func (q *Queue) Peek() ([]byte, error) {
+	q.RLock()
+	defer q.RUnlock()
+	return q.ReadValueByID(q.head + 1)
+}
+
+// ReadValueByID returns a value by it's id
+func (q *Queue) ReadValueByID(id uint64) ([]byte, error) {
+	item, err := q.readValueByID(id)
+	return item.Value, err
+}
+
+func (q *Queue) readValueByID(id uint64) (*item, error) {
 	if id <= q.head || id > q.tail {
 		if q.length() < 1 {
-			return &Item{nil, nil}, errors.New("queue: is empty")
+			return &item{nil, nil}, errors.New("queue: is empty")
 		}
-		return &Item{nil, nil}, errors.New("queue: out of bounds")
+		return &item{nil, nil}, errors.New("queue: out of bounds")
 	}
 
 	key := q.dbKey(id)
 	value, err := q.db.Get(key, nil)
-	item := &Item{key, value}
+	item := &item{key, value}
 	return item, err
 }
 
-// GetItemByOffset returns an item by offset from the queue head, starting from 0.
-func (q *Queue) GetItemByOffset(offset uint64) (*Item, error) {
-	return q.GetItemByID(q.head + 1 + offset)
+// ReadValueByOffset returns an item by offset from the queue head, starting from 0.
+func (q *Queue) ReadValueByOffset(offset uint64) ([]byte, error) {
+	return q.ReadValueByID(q.head + 1 + offset)
 }
 
 // AddOpenTransactions increments OpenTransactions stats item
@@ -171,17 +176,6 @@ func (q *Queue) AddOpenTransactions(value int64) {
 // Path returns leveldb database file path
 func (q *Queue) Path() string {
 	return q.DataDir + "/" + q.Name
-}
-
-// GetNext returns next item value
-func (q *Queue) GetNext() ([]byte, error) {
-	item, err := q.Dequeue()
-	return item.Value, err
-}
-
-// PutBack returns value to the queue
-func (q *Queue) PutBack(value []byte) error {
-	return q.Prepend(&Item{nil, value})
 }
 
 func (q *Queue) open() error {
