@@ -118,8 +118,7 @@ func (q *Queue) Enqueue(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 
-	key := q.dbKey(q.tail + 1)
-	err := q.db.Put(key, value, nil)
+	err := q.db.Put(q.dbKey(q.tail+1), value, nil)
 	if err == nil {
 		q.tail++
 	}
@@ -150,8 +149,7 @@ func (q *Queue) PutBack(value []byte) error {
 	if q.head < 1 {
 		return errors.New("queue: head can not be less then zero")
 	}
-	key := q.dbKey(q.head)
-	err := q.db.Put(key, value, nil)
+	err := q.db.Put(q.dbKey(q.head), value, nil)
 	if err == nil {
 		q.head--
 	}
@@ -179,9 +177,10 @@ func (q *Queue) readValueByID(id uint64) (*item, error) {
 		return &item{nil, nil}, errors.New("queue: out of bounds")
 	}
 
-	key := q.dbKey(id)
-	value, err := q.db.Get(key, nil)
-	item := &item{key, value}
+	var err error
+	item := &item{}
+	item.Key = q.dbKey(id)
+	item.Value, err = q.db.Get(item.Key, nil)
 	return item, err
 }
 
