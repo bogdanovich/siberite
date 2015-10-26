@@ -31,6 +31,7 @@ type Queue struct {
 	head     uint64
 	tail     uint64
 	isOpened bool
+	isShared bool
 }
 
 // Options represents queue options
@@ -60,22 +61,43 @@ func Open(name string, dataDir string, opts *Options) (*Queue, error) {
 		head:     0,
 		tail:     0,
 		isOpened: false,
+		isShared: false,
+	}
+	return q, q.open()
+}
+
+// OpenShared creates and initializes a queue from opened leveldb database
+func OpenShared(name string, dataDir string,
+	keyPrefix string, db *leveldb.DB) (*Queue, error) {
+
+	q := &Queue{
+		Name:     name,
+		DataDir:  dataDir,
+		Stats:    &Stats{0},
+		db:       db,
+		opts:     &Options{KeyPrefix: []byte(keyPrefix)},
+		head:     0,
+		tail:     0,
+		isOpened: false,
+		isShared: true,
 	}
 	return q, q.open()
 }
 
 // Close leveldb database
 func (q *Queue) Close() {
-	if q.isOpened {
+	if q.isOpened && !q.isShared {
 		q.db.Close()
-		q.isOpened = false
 	}
+	q.isOpened = false
 }
 
 // Drop closes and deletes leveldb database
 func (q *Queue) Drop() {
 	q.Close()
-	os.RemoveAll(q.Path())
+	if !q.isShared {
+		os.RemoveAll(q.Path())
+	}
 }
 
 // Head returns current head offset of the queue
@@ -194,10 +216,12 @@ func (q *Queue) open() error {
 		DisableBlockCache: true,
 	}
 
-	var err error
-	q.db, err = leveldb.OpenFile(q.Path(), &o)
-	if err != nil {
-		return err
+	if !q.isShared {
+		var err error
+		q.db, err = leveldb.OpenFile(q.Path(), &o)
+		if err != nil {
+			return err
+		}
 	}
 	q.isOpened = true
 	return q.initialize()
