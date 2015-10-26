@@ -6,13 +6,32 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var dir = "./test_data"
 var name = "test"
+var sharedDBName = "test_shared"
+var sharedDBPath = dir + "/" + sharedDBName
 var options = Options{}
 var optionsWithKeyPrefix = Options{KeyPrefix: []byte("queue_key:")}
 var err error
+
+type testQueue func(*Queue)
+
+func withSharedQueues(t *testing.T, fn testQueue) {
+	db, err := leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes := []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues := make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, sharedDBPath, keyPrefix, db)
+		assert.NoError(t, err)
+		fn(queues[i])
+	}
+	db.Close()
+	os.RemoveAll(dir)
+}
 
 func TestMain(m *testing.M) {
 	result := m.Run()
@@ -21,19 +40,8 @@ func TestMain(m *testing.M) {
 }
 
 func Test_Open(t *testing.T) {
-	q, err := Open(name, dir, &options)
-	assert.Nil(t, err)
-	testOpen(t, q)
-	q.Drop()
-
-	// with KeyPrefix
-	q, err = Open("with_prefix", dir, &optionsWithKeyPrefix)
-	assert.Nil(t, err)
-	testOpen(t, q)
-	q.Drop()
-
 	invalidQueueName := "%@#*(&($%@#"
-	q, err = Open(invalidQueueName, dir, &options)
+	q, err := Open(invalidQueueName, dir, &options)
 	assert.EqualError(t, err, "queue: name is not alphanumeric")
 	q.Drop()
 
@@ -42,6 +50,22 @@ func Test_Open(t *testing.T) {
 	q, err = Open(invalidQueueName, dir, &options)
 	assert.EqualError(t, err, "queue: name is too long")
 	q.Drop()
+
+	q, err = Open(name, dir, &options)
+	assert.NoError(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	// with KeyPrefix
+	q, err = Open("with_prefix", dir, &optionsWithKeyPrefix)
+	assert.NoError(t, err)
+	testOpen(t, q)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testOpen(t, q)
+	})
+
 }
 
 func testOpen(t *testing.T, q *Queue) {
@@ -65,6 +89,10 @@ func Test_HeadAndTail(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testHeadAndTail(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testHeadAndTail(t, q)
+	})
 }
 
 func testHeadAndTail(t *testing.T, q *Queue) {
@@ -91,6 +119,10 @@ func Test_Peek(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testPeek(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testPeek(t, q)
+	})
 }
 
 func testPeek(t *testing.T, q *Queue) {
@@ -113,6 +145,10 @@ func Test_EnqueueDequeueLength(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testEnqueueDequeueLength(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testEnqueueDequeueLength(t, q)
+	})
 }
 
 func testEnqueueDequeueLength(t *testing.T, q *Queue) {
@@ -143,6 +179,10 @@ func Test_GetNext(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testGetNext(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testGetNext(t, q)
+	})
 }
 
 func testGetNext(t *testing.T, q *Queue) {
@@ -171,6 +211,10 @@ func Test_PutBack(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testPutBack(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testPutBack(t, q)
+	})
 }
 
 func testPutBack(t *testing.T, q *Queue) {
@@ -208,6 +252,10 @@ func Test_ReadValueByID(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testReadValueByID(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testReadValueByID(t, q)
+	})
 }
 
 func testReadValueByID(t *testing.T, q *Queue) {
@@ -236,6 +284,10 @@ func Test_ReadValueByOffset(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testReadValueByOffset(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testReadValueByOffset(t, q)
+	})
 }
 
 func testReadValueByOffset(t *testing.T, q *Queue) {
@@ -264,6 +316,10 @@ func Test_Length(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testLength(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testLength(t, q)
+	})
 }
 
 func testLength(t *testing.T, q *Queue) {
@@ -292,6 +348,10 @@ func Test_AddOpenTransactions(t *testing.T) {
 	q, _ = Open(name, dir, &optionsWithKeyPrefix)
 	testAddOpenTransactions(t, q)
 	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testAddOpenTransactions(t, q)
+	})
 }
 
 func testAddOpenTransactions(t *testing.T, q *Queue) {
@@ -332,6 +392,43 @@ func testInitialize(t *testing.T, q *Queue, opts *Options) {
 	assert.Equal(t, uint64(expectedLength), q.Length())
 	assert.Equal(t, uint64(expectedHead), q.Head())
 	assert.Equal(t, uint64(expectedTail), q.Tail())
+}
+
+func Test_initializeShared(t *testing.T) {
+	// store some data
+	db, err := leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes := []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues := make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, sharedDBPath, keyPrefix, db)
+		assert.NoError(t, err)
+
+		queues[i].Enqueue([]byte("1"))
+		queues[i].Enqueue([]byte("2"))
+		queues[i].Enqueue([]byte("3"))
+		queues[i].Enqueue([]byte("4"))
+
+		// read one value
+		queues[i].GetNext()
+
+		assert.Equal(t, uint64(3), queues[i].Length())
+	}
+	db.Close()
+
+	// initialize again
+	db, err = leveldb.OpenFile(sharedDBPath, &opt.Options{})
+	prefixes = []string{"prefix1:", "prefix2:", "prefix3:"}
+	queues = make(map[int]*Queue)
+	for i, keyPrefix := range prefixes {
+		queues[i], err = OpenShared(name, sharedDBPath, keyPrefix, db)
+		assert.NoError(t, err)
+
+		assert.Equal(t, uint64(3), queues[i].Length())
+		assert.Equal(t, uint64(1), queues[i].Head())
+		assert.Equal(t, uint64(4), queues[i].Tail())
+	}
+	db.Close()
+
 }
 
 func Test_queuePath(t *testing.T) {
