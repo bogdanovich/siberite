@@ -1,3 +1,7 @@
+## 0.4.2
+
+- Enable leveldb BlockCacher (improves performance)
+
 ## 0.4.1
 
 - Fix repository.GetQueue returns error without lock release
