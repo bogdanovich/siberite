@@ -3,7 +3,7 @@ Benchmark Details:
 * OS X Yosemite 10.10.5
 * Kestrel 2.4.8, Java 1.6.0_65, -Xmx1024m
 * Darner 0.2.5 [Innometrics/darner](https://github.com/Innometrics/darner) built with RocksDB
-* Siberite 0.4
+* Siberite 0.4.2
 
 # Resident Memory
 
@@ -39,17 +39,17 @@ darner    131072 requests: 49060 kB
 darner    262024 requests: 50764 kB
 darner    524048 requests: 54112 kB
 
-siberite         0 requests: 3352 kB
-siberite      1024 requests: 10508 kB
-siberite      2048 requests: 12672 kB
-siberite      4096 requests: 20472 kB
-siberite      8192 requests: 23504 kB
-siberite     16384 requests: 25908 kB
-siberite     32768 requests: 29360 kB
-siberite     65536 requests: 37652 kB
-siberite    131072 requests: 48356 kB
-siberite    262024 requests: 74724 kB
-siberite    524048 requests: 74788 kB
+siberite         0 requests: 2420 kB
+siberite      1024 requests: 10084 kB
+siberite      2048 requests: 12324 kB
+siberite      4096 requests: 20064 kB
+siberite      8192 requests: 36932 kB
+siberite     16384 requests: 45400 kB
+siberite     32768 requests: 50612 kB
+siberite     65536 requests: 58412 kB
+siberite    131072 requests: 65208 kB
+siberite    262024 requests: 81800 kB
+siberite    524048 requests: 87360 kB
 ```
 
 # Queue Flooding
@@ -61,56 +61,56 @@ How quickly can we flood items through 10 queues?  This tests the raw throughput
 ```
 $ ./flood.sh
 warming up kestrel...done.
-kestrel      1 conns: 16807.879854 (ops/s mean)
-kestrel      2 conns: 31177.408391
-kestrel      5 conns: 45585.286014
-kestrel     10 conns: 58226.020907
-kestrel     50 conns: 61077.076049
-kestrel    100 conns: 62672.071079
-kestrel    200 conns: 61559.587967
-kestrel    300 conns: 61625.581672
-kestrel    400 conns: 61602.083759
-kestrel    600 conns: 60304.539948
-kestrel    800 conns: 60008.272035
-kestrel   1000 conns: 59328.929184
-kestrel   2000 conns: 36193.558029
-kestrel   4000 conns: 33808.110691
-kestrel   6000 conns: 15335.226914
-kestrel   8000 conns: 15026.652097
+kestrel      1 conns: 16375 (requests/s mean)
+kestrel      2 conns: 30039
+kestrel      5 conns: 45235
+kestrel     10 conns: 55656
+kestrel     50 conns: 58945
+kestrel    100 conns: 59103
+kestrel    200 conns: 58564
+kestrel    300 conns: 57807
+kestrel    400 conns: 57621
+kestrel    600 conns: 57065
+kestrel    800 conns: 57273
+kestrel   1000 conns: 56685
+kestrel   2000 conns: 44625
+kestrel   4000 conns: 37366
+kestrel   6000 conns: 13404
+kestrel   8000 conns: 18523
 
-darner       1 conns: 20485.164610
-darner       2 conns: 39084.504255
-darner       5 conns: 53805.902578
-darner      10 conns: 56233.919391
-darner      50 conns: 58144.865233
-darner     100 conns: 54192.627376
-darner     200 conns: 52301.009202
-darner     300 conns: 53942.452802
-darner     400 conns: 53321.372943
-darner     600 conns: 52564.547239
-darner     800 conns: 49931.330399
-darner    1000 conns: 48939.109464
-darner    2000 conns: 43240.382904
-darner    4000 conns: 24467.149941
-darner    6000 conns: 22490.386543
-darner    8000 conns: 14474.205194
+darner       1 conns: 20375
+darner       2 conns: 38828
+darner       5 conns: 51813
+darner      10 conns: 54161
+darner      50 conns: 54177
+darner     100 conns: 53461
+darner     200 conns: 52483
+darner     300 conns: 51443
+darner     400 conns: 51400
+darner     600 conns: 51803
+darner     800 conns: 48456
+darner    1000 conns: 48253
+darner    2000 conns: 42728
+darner    4000 conns: 26062
+darner    6000 conns: 23156
+darner    8000 conns: 15040
 
-siberite       1 conns: 16685.785422
-siberite       2 conns: 29680.072714
-siberite       5 conns: 48004.527781
-siberite      10 conns: 66177.472140
-siberite      50 conns: 73205.980482
-siberite     100 conns: 74767.933948
-siberite     200 conns: 70195.272648
-siberite     300 conns: 68949.940311
-siberite     400 conns: 68624.760247
-siberite     600 conns: 66170.498654
-siberite     800 conns: 62391.969673
-siberite    1000 conns: 60788.384543
-siberite    2000 conns: 50584.645539
-siberite    4000 conns: 27876.874830
-siberite    6000 conns: 22633.264009
-siberite    8000 conns: 19387.906547
+siberite       1 conns: 16982
+siberite       2 conns: 29770
+siberite       5 conns: 48896
+siberite      10 conns: 65952
+siberite      50 conns: 72798
+siberite     100 conns: 74385
+siberite     200 conns: 69777
+siberite     300 conns: 68507
+siberite     400 conns: 67018
+siberite     600 conns: 64851
+siberite     800 conns: 63509
+siberite    1000 conns: 61003
+siberite    2000 conns: 48766
+siberite    4000 conns: 25512
+siberite    6000 conns: 21621
+siberite    8000 conns: 15876
 ```
 
 # Queue Packing (1024 byte message size)
@@ -125,32 +125,32 @@ free memory.  Instead it's important for the throughput to flatten out as the ba
 ```
 $ ./packing.sh
 warming up kestrel...done.
-kestrel        0 sets: 15052.481901
-kestrel     1024 sets: 15525.517448
-kestrel    16384 sets: 15377.189029
-kestrel    65536 sets: 14683.953159
-kestrel   262144 sets: 14147.473998
-kestrel  1048576 sets: 14099.458784
-kestrel  4194304 sets: 14893.911809
-kestrel  8388608 sets: 14831.780153
+kestrel        0 sets: 15052
+kestrel     1024 sets: 15525
+kestrel    16384 sets: 15377
+kestrel    65536 sets: 14683
+kestrel   262144 sets: 14147
+kestrel  1048576 sets: 14099
+kestrel  4194304 sets: 14893
+kestrel  8388608 sets: 14831
 
-darner        0 sets: 19459.351790
-darner     1024 sets: 18821.834508
-darner    16384 sets: 16667.949078
-darner    65536 sets: 16206.286265
-darner   262144 sets: 16551.859558
-darner  1048576 sets: 15245.079659
-darner  4194304 sets: 14875.396451
-darner  8388608 sets: 14750.351526
+darner        0 sets: 19459
+darner     1024 sets: 18821
+darner    16384 sets: 16667
+darner    65536 sets: 16206
+darner   262144 sets: 16551
+darner  1048576 sets: 15245
+darner  4194304 sets: 14875
+darner  8388608 sets: 14750
 
-siberite        0 sets: 16009.303237
-siberite     1024 sets: 15615.363126
-siberite    16384 sets: 14026.486300
-siberite    65536 sets: 12975.689809
-siberite   262144 sets: 11783.504995
-siberite  1048576 sets: 10107.638889
-siberite  4194304 sets: 10036.420823
-siberite  8388608 sets: 9868.384511
+siberite        0 sets: 15466
+siberite     1024 sets: 15583
+siberite    16384 sets: 14077
+siberite    65536 sets: 12898
+siberite   262144 sets: 12180
+siberite  1048576 sets: 11310
+siberite  4194304 sets: 11287
+siberite  8388608 sets: 11373
 ```
 
 # Queue Packing and Unpacking (64 byte message size)
@@ -215,28 +215,28 @@ darner | items:   44272468 | speed:    18028 ops/s
 darner | items:   22136234 | speed:    17244 ops/s
 darner | items:          0 | speed:    20864 ops/s
 
-siberite | items:          0 | speed:    16946 ops/s
-siberite | items:       1024 | speed:    16875 ops/s
-siberite | items:      17408 | speed:    16393 ops/s
-siberite | items:      82944 | speed:    15279 ops/s
-siberite | items:     345088 | speed:    15083 ops/s
-siberite | items:    1393664 | speed:    14756 ops/s
-siberite | items:    5587968 | speed:    14020 ops/s
-siberite | items:   13976576 | speed:    14729 ops/s
-siberite | items:   30753792 | speed:    14204 ops/s
-siberite | items:   64308224 | speed:    14552 ops/s
-siberite | items:  131417088 | speed:    12908 ops/s
-siberite | items:  265634816 | speed:    13490 ops/s
-siberite | items:  243498574 | speed:    14021 ops/s
-siberite | items:  221362340 | speed:    14382 ops/s
-siberite | items:  199226106 | speed:    14438 ops/s
-siberite | items:  177089872 | speed:    13233 ops/s
-siberite | items:  154953638 | speed:    14254 ops/s
-siberite | items:  132817404 | speed:    14904 ops/s
-siberite | items:  110681170 | speed:    14793 ops/s
-siberite | items:   88544936 | speed:    14720 ops/s
-siberite | items:   66408702 | speed:    14968 ops/s
-siberite | items:   44272468 | speed:    14872 ops/s
-siberite | items:   22136234 | speed:    14757 ops/s
-siberite | items:          0 | speed:    16968 ops/s
+siberite | items:          0 | speed:    14768 ops/s
+siberite | items:       1024 | speed:    15391 ops/s
+siberite | items:      17408 | speed:    15076 ops/s
+siberite | items:      82944 | speed:    15687 ops/s
+siberite | items:     345088 | speed:    15776 ops/s
+siberite | items:    1393664 | speed:    14984 ops/s
+siberite | items:    5587968 | speed:    15207 ops/s
+siberite | items:   13976576 | speed:    15121 ops/s
+siberite | items:   30753792 | speed:    14596 ops/s
+siberite | items:   64308224 | speed:    15309 ops/s
+siberite | items:  131417088 | speed:    13376 ops/s
+siberite | items:  265634816 | speed:    14628 ops/s
+siberite | items:  243498574 | speed:    14704 ops/s
+siberite | items:  221362340 | speed:    15243 ops/s
+siberite | items:  199226106 | speed:    15157 ops/s
+siberite | items:  177089872 | speed:    15086 ops/s
+siberite | items:  154953638 | speed:    15086 ops/s
+siberite | items:  132817404 | speed:    14033 ops/s
+siberite | items:  110681170 | speed:    15070 ops/s
+siberite | items:   88544936 | speed:    14226 ops/s
+siberite | items:   66408702 | speed:    14343 ops/s
+siberite | items:   44272468 | speed:    14517 ops/s
+siberite | items:   22136234 | speed:    13788 ops/s
+siberite | items:          0 | speed:    14602 ops/s
 ```

@@ -33,7 +33,7 @@ We used to use Darner before, but got 2 large production queues corrupted at som
 
 ## Build
 
-Make sure your `GOROOT` and `GOPATH` are correct
+Make sure your `GOPATH` is correct
 
 ```
 go get github.com/bogdanovich/siberite

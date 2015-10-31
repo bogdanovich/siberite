@@ -171,13 +171,8 @@ func (q *Queue) open() error {
 		return errors.New("Queue name is too long")
 	}
 
-	o := opt.Options{
-		BlockCacher:       opt.NoCacher,
-		DisableBlockCache: true,
-	}
-
 	var err error
-	q.db, err = leveldb.OpenFile(q.Path(), &o)
+	q.db, err = leveldb.OpenFile(q.Path(), &opt.Options{})
 	if err != nil {
 		return err
 	}
