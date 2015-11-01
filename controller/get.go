@@ -63,7 +63,7 @@ func (c *Controller) get(cmd *Command) error {
 	}
 	if strings.Contains(cmd.SubCommand, "open") && len(value) > 0 {
 		c.setCurrentState(cmd, value)
-		q.Stats.UpdateOpenReads(1)
+		q.Stats().UpdateOpenReads(1)
 	}
 	atomic.AddUint64(&c.repo.Stats.CmdGet, 1)
 	return nil
@@ -76,7 +76,7 @@ func (c *Controller) getClose(cmd *Command) error {
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
 	if c.currentValue != nil {
-		q.Stats.UpdateOpenReads(-1)
+		q.Stats().UpdateOpenReads(-1)
 		c.setCurrentState(nil, nil)
 	}
 
@@ -95,7 +95,7 @@ func (c *Controller) abort(cmd *Command) error {
 			return errors.New("SERVER_ERROR " + err.Error())
 		}
 		if c.currentValue != nil {
-			q.Stats.UpdateOpenReads(-1)
+			q.Stats().UpdateOpenReads(-1)
 			c.setCurrentState(nil, nil)
 		}
 	}

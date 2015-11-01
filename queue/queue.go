@@ -19,6 +19,7 @@ type Consumer interface {
 	Peek() ([]byte, error)
 	Length() uint64
 	IsEmpty() bool
+	Stats() *Stats
 }
 
 // make sure Queue implements Consumer interface
@@ -30,7 +31,7 @@ type Queue struct {
 	sync.RWMutex
 	Name     string
 	DataDir  string
-	Stats    *Stats
+	stats    *Stats
 	db       *leveldb.DB
 	opts     *Options
 	head     uint64
@@ -56,7 +57,7 @@ func Open(name string, dataDir string, opts *Options) (*Queue, error) {
 	q := &Queue{
 		Name:     name,
 		DataDir:  dataDir,
-		Stats:    &Stats{0},
+		stats:    &Stats{0},
 		db:       &leveldb.DB{},
 		opts:     opts,
 		head:     0,
@@ -73,7 +74,7 @@ func OpenShared(name string, keyPrefix string, db *leveldb.DB) (*Queue, error) {
 	q := &Queue{
 		Name:     name,
 		DataDir:  "",
-		Stats:    &Stats{0},
+		stats:    &Stats{0},
 		db:       db,
 		opts:     &Options{KeyPrefix: []byte(keyPrefix)},
 		head:     0,
@@ -218,6 +219,11 @@ func (q *Queue) DeleteAll() error {
 		return err
 	}
 	return q.initialize()
+}
+
+// Stats returns stats struct
+func (q *Queue) Stats() *Stats {
+	return q.stats
 }
 
 // Path returns leveldb database file path

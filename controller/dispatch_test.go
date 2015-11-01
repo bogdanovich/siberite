@@ -10,7 +10,7 @@ import (
 )
 
 func Test_Dispatch(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 

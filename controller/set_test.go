@@ -9,7 +9,7 @@ import (
 )
 
 func Test_Set(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 

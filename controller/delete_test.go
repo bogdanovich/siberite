@@ -8,7 +8,7 @@ import (
 )
 
 func Test_Delete(t *testing.T) {
-	repo, _ := repository.Initialize(dir)
+	repo, _ := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 	mockTCPConn := NewMockTCPConn()

@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 }
 
 func Test_NewSession_FinishSession(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -64,7 +64,7 @@ func Test_NewSession_FinishSession(t *testing.T) {
 }
 
 func Test_ReadFirstMessage(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -83,7 +83,7 @@ func Test_ReadFirstMessage(t *testing.T) {
 }
 
 func Test_UnknownCommand(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -97,7 +97,7 @@ func Test_UnknownCommand(t *testing.T) {
 }
 
 func Test_SendError(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 

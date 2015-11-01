@@ -36,7 +36,7 @@ func Test_parseGetCommand(t *testing.T) {
 // get test/close = empty
 // get test/abort = empty
 func Test_Get(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -94,7 +94,7 @@ func Test_Get(t *testing.T) {
 // get test/peek = next value
 // get test/close = empty
 func Test_GetOpen(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -182,7 +182,7 @@ func Test_GetOpen(t *testing.T) {
 // NewSession
 // get test = same value
 func Test_GetOpen_Disconnect(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -224,7 +224,7 @@ func Test_GetOpen_Disconnect(t *testing.T) {
 // FinishSession (disconnect)
 // get test/close/t=88/open = same value
 func Test_GetCloseOpen(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 
@@ -296,7 +296,7 @@ func Test_GetCloseOpen(t *testing.T) {
 // gets test = error
 // GETS test/t=10/close/open = value
 func Test_Gets(t *testing.T) {
-	repo, err := repository.Initialize(dir)
+	repo, err := repository.NewRepository(dir)
 	defer repo.CloseAllQueues()
 	assert.Nil(t, err)
 

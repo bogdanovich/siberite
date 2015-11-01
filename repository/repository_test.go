@@ -23,8 +23,8 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func Test_Initialize(t *testing.T) {
-	repo, err := Initialize(dir)
+func Test_NewRepository(t *testing.T) {
+	repo, err := NewRepository(dir)
 	assert.Nil(t, err)
 
 	// Create 3 queues and push some data
@@ -44,8 +44,8 @@ func Test_Initialize(t *testing.T) {
 	repo.CloseAllQueues()
 	repo = nil
 
-	// Initialize repo again and check loaded queues
-	repo, err = Initialize(dir)
+	// NewRepository repo again and check loaded queues
+	repo, err = NewRepository(dir)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, repo.Count(), "Invalid repo count after initialization")
@@ -60,7 +60,7 @@ func Test_Initialize(t *testing.T) {
 }
 
 func Test_DeleteQueue(t *testing.T) {
-	repo, err := Initialize(dir)
+	repo, err := NewRepository(dir)
 	defer repo.DeleteAllQueues()
 
 	assert.Nil(t, err)
@@ -79,7 +79,7 @@ func Test_DeleteQueue(t *testing.T) {
 }
 
 func Test_FullStats(t *testing.T) {
-	repo, _ := Initialize(dir)
+	repo, _ := NewRepository(dir)
 	defer repo.DeleteAllQueues()
 
 	repo.GetQueue("test1")
@@ -97,7 +97,7 @@ func Test_FullStats(t *testing.T) {
 }
 
 func Test_GetQueue(t *testing.T) {
-	repo, _ := Initialize(dir)
+	repo, _ := NewRepository(dir)
 	defer repo.DeleteAllQueues()
 
 	_, err := repo.GetQueue("test1")
@@ -122,7 +122,7 @@ func Test_GetQueue(t *testing.T) {
 }
 
 func Test_Count(t *testing.T) {
-	repo, _ := Initialize(dir)
+	repo, _ := NewRepository(dir)
 	defer repo.DeleteAllQueues()
 
 	repo.GetQueue("test1")

@@ -380,6 +380,27 @@ func testDeleteAll(t *testing.T, q *Queue) {
 	assert.True(t, q.IsEmpty())
 }
 
+func Test_Stats(t *testing.T) {
+	q, _ := Open(name, dir, &options)
+	testStats(t, q)
+	q.Drop()
+
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testStats(t, q)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testStats(t, q)
+	})
+}
+
+func testStats(t *testing.T, q *Queue) {
+	stats := q.Stats()
+	assert.EqualValues(t, 0, stats.OpenReads)
+	stats.UpdateOpenReads(1)
+	assert.EqualValues(t, 1, stats.OpenReads)
+}
+
 func Test_initialize(t *testing.T) {
 	q, _ := Open(name, dir, &options)
 	testInitialize(t, q, &options)

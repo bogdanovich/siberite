@@ -41,8 +41,8 @@ type StatItem struct {
 
 var err error
 
-// Initialize and open all queues in the data directory
-func Initialize(dataDir string) (*QueueRepository, error) {
+// NewRepository and open all queues in the data directory
+func NewRepository(dataDir string) (*QueueRepository, error) {
 	dataPath, err := filepath.Abs(dataDir)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	for pair := range repo.storage.IterBuffered() {
 		q = pair.Val.(*queue.Queue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
-		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenReads)})
+		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReads)})
 	}
 	return stats
 }

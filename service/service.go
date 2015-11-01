@@ -36,7 +36,7 @@ func (s *Service) Serve(listener *net.TCPListener) {
 
 	log.Println("initializing...")
 	var err error
-	s.repo, err = repository.Initialize(s.dataDir)
+	s.repo, err = repository.NewRepository(s.dataDir)
 	log.Println("data directory: ", s.dataDir)
 	if err != nil {
 		log.Fatal(err)
