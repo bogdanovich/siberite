@@ -8,25 +8,37 @@ import (
 )
 
 func Test_parseGetCommand(t *testing.T) {
-	testCases := map[string]string{
-		"work":                         "",
-		"work/open":                    "open",
-		"work/close":                   "close",
-		"work/abort":                   "abort",
-		"work/peek":                    "peek",
-		"work/t=10":                    "",
-		"work/t=10/t=100/t=1234567890": "",
-		"work/t=10/open":               "open",
-		"work/open/t=10":               "open",
-		"work/close/open/t=10":         "close/open",
-		"work/close/t=10/open/abort":   "close/open/abort",
+	testCases := map[string]Command{
+		"work":                            Command{},
+		"work/open":                       Command{SubCommand: "open"},
+		"work/close":                      Command{SubCommand: "close"},
+		"work/abort":                      Command{SubCommand: "abort"},
+		"work/peek":                       Command{SubCommand: "peek"},
+		"work/t=10":                       Command{},
+		"work/t=10/t=100/t=22":            Command{},
+		"work/t=10/open":                  Command{SubCommand: "open"},
+		"work/open/t=10":                  Command{SubCommand: "open"},
+		"work/close/open/t=10":            Command{SubCommand: "close/open"},
+		"work/close/t=10/open/abort":      Command{SubCommand: "close/open/abort"},
+		"work:cg":                         Command{ConsumerGroup: "cg"},
+		"work:consumer/open":              Command{SubCommand: "open", ConsumerGroup: "consumer"},
+		"work:1/close":                    Command{SubCommand: "close", ConsumerGroup: "1"},
+		"work:000/abort":                  Command{SubCommand: "abort", ConsumerGroup: "000"},
+		"work:1:2/peek":                   Command{SubCommand: "peek", ConsumerGroup: "1"},
+		"work:consumergroup/t=10":         Command{ConsumerGroup: "consumergroup"},
+		"work:test:cg/t=10/t=100/t=22":    Command{ConsumerGroup: "test"},
+		"work:1cg/t=10/open":              Command{SubCommand: "open", ConsumerGroup: "1cg"},
+		"work:c/open/t=10":                Command{SubCommand: "open", ConsumerGroup: "c"},
+		"work:0/close/open/t=10":          Command{SubCommand: "close/open", ConsumerGroup: "0"},
+		"work:group/close/t=1/open/abort": Command{SubCommand: "close/open/abort", ConsumerGroup: "group"},
 	}
 
-	for input, subCommand := range testCases {
+	for input, command := range testCases {
 		cmd := parseGetCommand([]string{"get", input})
 		assert.Equal(t, "get", cmd.Name, input)
 		assert.Equal(t, "work", cmd.QueueName, input)
-		assert.Equal(t, subCommand, cmd.SubCommand, input)
+		assert.Equal(t, command.SubCommand, cmd.SubCommand, input)
+		assert.Equal(t, command.ConsumerGroup, cmd.ConsumerGroup, input)
 	}
 }
 

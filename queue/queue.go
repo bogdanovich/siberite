@@ -12,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+var alphaNumericRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+
 // Consumer represents a queue consumer
 type Consumer interface {
 	GetNext() ([]byte, error)
@@ -234,7 +236,7 @@ func (q *Queue) Path() string {
 func (q *Queue) open() error {
 	q.Lock()
 	defer q.Unlock()
-	if regexp.MustCompile(`[^a-zA-Z0-9_]+`).MatchString(q.Name) {
+	if alphaNumericRegexp.MatchString(q.Name) {
 		return errors.New("queue: name is not alphanumeric")
 	}
 

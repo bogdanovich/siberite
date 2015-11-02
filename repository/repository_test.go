@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bogdanovich/siberite/queue"
+	"github.com/bogdanovich/siberite/cgroup"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +29,7 @@ func Test_NewRepository(t *testing.T) {
 
 	// Create 3 queues and push some data
 	queueNames := []string{"test1", "test2", "test3"}
-	var q *queue.Queue
+	var q *cgroup.CGQueue
 	totalItems := 3
 	for i := 0; i < len(queueNames); i++ {
 		q, _ = repo.GetQueue(queueNames[i])

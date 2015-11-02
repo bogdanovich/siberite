@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bogdanovich/siberite/queue"
+	"github.com/bogdanovich/siberite/cgroup"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -54,13 +54,13 @@ func NewRepository(dataDir string) (*QueueRepository, error) {
 
 // GetQueue returns existing queue from repository,
 // creates a new one if it doesn't exist
-func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
+func (repo *QueueRepository) GetQueue(key string) (*cgroup.CGQueue, error) {
 	q, ok := repo.get(key)
 	if !ok {
 		repo.Lock()
 		defer repo.Unlock()
 		if q, ok = repo.get(key); !ok {
-			q, err = queue.Open(key, repo.DataPath, &queue.Options{})
+			q, err = cgroup.CGQueueOpen(key, repo.DataPath)
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +117,7 @@ func (repo *QueueRepository) FlushAllQueues() error {
 // CloseAllQueues closes all queues
 func (repo *QueueRepository) CloseAllQueues() error {
 	var err error
-	var q *queue.Queue
+	var q *cgroup.CGQueue
 	for pair := range repo.storage.IterBuffered() {
 		q, err = repo.GetQueue(pair.Key)
 		if err != nil {
@@ -139,11 +139,17 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", repo.Stats.TotalConnections)})
 	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", repo.Stats.CmdGet)})
 	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", repo.Stats.CmdSet)})
-	var q *queue.Queue
+	var q *cgroup.CGQueue
+	var cg *cgroup.ConsumerGroup
 	for pair := range repo.storage.IterBuffered() {
-		q = pair.Val.(*queue.Queue)
+		q = pair.Val.(*cgroup.CGQueue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReads)})
+		for pair := range q.ConsumerGroupIterator() {
+			cg = pair.Val.(*cgroup.ConsumerGroup)
+			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
+			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReads)})
+		}
 	}
 	return stats
 }
@@ -171,10 +177,10 @@ func (repo *QueueRepository) initialize() error {
 	return nil
 }
 
-func (repo *QueueRepository) get(key string) (*queue.Queue, bool) {
+func (repo *QueueRepository) get(key string) (*cgroup.CGQueue, bool) {
 	val, ok := repo.storage.Get(key)
 	if ok {
-		return val.(*queue.Queue), ok
+		return val.(*cgroup.CGQueue), ok
 	}
 	return nil, ok
 }

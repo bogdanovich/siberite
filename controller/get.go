@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
@@ -46,14 +48,26 @@ func (c *Controller) Get(input []string) error {
 	return nil
 }
 
+func (c *Controller) getConsumer(cmd *Command) (queue.Consumer, error) {
+	if cmd.ConsumerGroup == "" {
+		return c.repo.GetQueue(cmd.QueueName)
+	}
+
+	q, err := c.repo.GetQueue(cmd.QueueName)
+	if err == nil {
+		return q.ConsumerGroup(cmd.ConsumerGroup)
+	}
+	return q, err
+}
+
 func (c *Controller) get(cmd *Command) error {
 	if c.currentValue != nil {
 		return errors.New("CLIENT_ERROR " + "Close current item first")
 	}
 
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
+		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
 	value, _ := q.GetNext()
@@ -70,9 +84,9 @@ func (c *Controller) get(cmd *Command) error {
 }
 
 func (c *Controller) getClose(cmd *Command) error {
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
+		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
 	if c.currentValue != nil {
@@ -85,9 +99,9 @@ func (c *Controller) getClose(cmd *Command) error {
 
 func (c *Controller) abort(cmd *Command) error {
 	if c.currentValue != nil {
-		q, err := c.repo.GetQueue(cmd.QueueName)
+		q, err := c.getConsumer(cmd)
 		if err != nil {
-			log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
+			log.Printf("Can't get consumer %s: %s", cmd, err.Error())
 			return errors.New("SERVER_ERROR " + err.Error())
 		}
 		err = q.PutBack(c.currentValue)
@@ -103,9 +117,9 @@ func (c *Controller) abort(cmd *Command) error {
 }
 
 func (c *Controller) peek(cmd *Command) error {
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
+		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
 	value, _ := q.Peek()
@@ -122,10 +136,16 @@ func parseGetCommand(input []string) *Command {
 	if strings.Contains(input[1], "t=") {
 		input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
 	}
+	tokens := make([]string, 3)
 	if strings.Contains(input[1], "/") {
-		tokens := strings.SplitN(input[1], "/", 2)
+		tokens = strings.SplitN(input[1], "/", 2)
 		cmd.QueueName = tokens[0]
 		cmd.SubCommand = strings.Trim(tokens[1], "/")
+	}
+	if strings.Contains(cmd.QueueName, ":") {
+		tokens = strings.SplitN(cmd.QueueName, ":", 3)
+		cmd.QueueName = tokens[0]
+		cmd.ConsumerGroup = tokens[1]
 	}
 	return cmd
 }

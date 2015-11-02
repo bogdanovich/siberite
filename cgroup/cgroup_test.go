@@ -27,20 +27,20 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func setupConsumerGroup(t *testing.T, numItems int) (*ConsumerGroup, error) {
+func setupConsumerGroup(t *testing.T, name string,
+	numItems int) (*ConsumerGroup, error) {
+
 	storage, err := leveldb.OpenFile(storageDBPath, &opt.Options{})
 	assert.NoError(t, err)
 	source, err := queue.Open(sourceQueueName, dir, &options)
 	assert.NoError(t, err)
 
-	for i := 0; i < numItems; i++ {
+	for i := 0; i < numItems+1; i++ {
 		source.Enqueue([]byte(strconv.Itoa(i)))
 	}
 
-	// dequeue first element so head is not 0
-	// remaing queue size is 9
 	source.GetNext()
-	return NewConsumerGroup(cgName, source, storage)
+	return NewConsumerGroup(name, source, storage)
 }
 
 func cleanupConsumerGroup(cg *ConsumerGroup) {
@@ -50,18 +50,22 @@ func cleanupConsumerGroup(cg *ConsumerGroup) {
 }
 
 func Test_initialize(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
-	defer cleanupConsumerGroup(cg)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cg.cursor)
 	assert.Equal(t, "_c:"+cgName, string(cg.cursorKey))
 	assert.EqualValues(t, 0, cg.failedReads.Head())
 	assert.EqualValues(t, 0, cg.failedReads.Tail())
 	assert.EqualValues(t, 0, cg.failedReads.Length())
+	cleanupConsumerGroup(cg)
+
+	cg, err = setupConsumerGroup(t, "a-1", 10)
+	defer cleanupConsumerGroup(cg)
+	assert.EqualError(t, err, "cgroup: name is not alphanumeric")
 }
 
 func Test_GetNextAndPutBack(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 5)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 
@@ -100,12 +104,11 @@ func Test_GetNextAndPutBack(t *testing.T) {
 	assert.Equal(t, "5", string(value))
 
 	value, err = cg.GetNext()
-	assert.NoError(t, err)
-	assert.Equal(t, "6", string(value))
+	assert.EqualError(t, err, "queue: ID is out of bounds")
 }
 
 func Test_Peek(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 
@@ -142,7 +145,7 @@ func Test_Peek(t *testing.T) {
 }
 
 func Test_Length(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 
@@ -165,7 +168,7 @@ func Test_Length(t *testing.T) {
 }
 
 func Test_IsEmpty(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 0)
+	cg, err := setupConsumerGroup(t, cgName, 0)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 	assert.True(t, cg.IsEmpty())
@@ -180,39 +183,39 @@ func Test_IsEmpty(t *testing.T) {
 }
 
 func Test_Reset(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 
 	value, err := cg.GetNext()
 	assert.NoError(t, err)
 
 	cg.PutBack(value)
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 
 	cg.Reset()
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 }
 
 func Test_Delete(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 
 	value, err := cg.GetNext()
 	assert.NoError(t, err)
 
 	cg.PutBack(value)
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 
 	cg.Delete()
-	assert.EqualValues(t, 9, cg.Length())
+	assert.EqualValues(t, 10, cg.Length())
 }
 
 func Test_Stats(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 0)
+	cg, err := setupConsumerGroup(t, cgName, 0)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 	stats := cg.Stats()
@@ -222,7 +225,7 @@ func Test_Stats(t *testing.T) {
 }
 
 func Test_loadAndSaveCursor(t *testing.T) {
-	cg, err := setupConsumerGroup(t, 10)
+	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
 

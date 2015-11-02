@@ -2,14 +2,25 @@ package cgroup
 
 import (
 	"encoding/binary"
+	"errors"
+	"regexp"
 	"sync"
 
 	"github.com/bogdanovich/siberite/queue"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-// make sure ConsumerGroup implements queue.Consumer interface
-var _ queue.Consumer = (*ConsumerGroup)(nil)
+const (
+	cgCursorPrefix      = "_c:"
+	cgFailedReadsPrefix = "_r:"
+)
+
+var (
+	// make sure ConsumerGroup implements queue.Consumer interface
+	_ queue.Consumer = (*ConsumerGroup)(nil)
+
+	alphaNumericRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+)
 
 // ConsumerGroup represents a consumer group that reads from a
 // source queue, stores its own cursor position and saves failed
@@ -21,8 +32,8 @@ type ConsumerGroup struct {
 	source      *queue.Queue
 	storage     *leveldb.DB
 	cursor      uint64
-	cursorKey   []byte
 	failedReads *queue.Queue
+	cursorKey   []byte
 }
 
 // NewConsumerGroup initializes a consumer group
@@ -34,7 +45,7 @@ func NewConsumerGroup(name string, source *queue.Queue,
 		source:  source,
 		storage: storage,
 	}
-	cg.cursorKey = []byte("_c:" + cg.Name)
+	cg.cursorKey = []byte(cgCursorPrefix + cg.Name)
 	return cg, cg.initialize()
 }
 
@@ -50,13 +61,6 @@ func (cg *ConsumerGroup) GetNext() ([]byte, error) {
 
 	item, err := cg.readNextItemFromSource()
 	if err != nil {
-		if err.Error() == "queue: is empty" {
-			return nil, err
-		}
-		if err.Error() == "queue: ID is out of bounds" {
-			// race condition happened, repeat the operation
-			return cg.GetNext()
-		}
 		return nil, err
 	}
 	cg.updateCursor(item.ID)
@@ -75,13 +79,6 @@ func (cg *ConsumerGroup) Peek() ([]byte, error) {
 
 	item, err := cg.readNextItemFromSource()
 	if err != nil {
-		if err.Error() == "queue: is empty" {
-			return nil, err
-		}
-		if err.Error() == "queue: ID is out of bounds" {
-			// race condition happened, repeat the operation
-			return cg.Peek()
-		}
 		return nil, err
 	}
 	return item.Value, err
@@ -153,12 +150,18 @@ func (cg *ConsumerGroup) Delete() error {
 }
 
 func (cg *ConsumerGroup) initialize() error {
+	if alphaNumericRegexp.MatchString(cg.Name) {
+		return errors.New("cgroup: name is not alphanumeric")
+	}
+
 	err := cg.loadCursor()
 	if err != nil {
 		return err
 	}
 
-	cg.failedReads, err = queue.OpenShared(cg.Name, "_r:"+cg.Name+":", cg.storage)
+	cg.failedReads, err = queue.OpenShared(cg.Name,
+		cgFailedReadsPrefix+cg.Name+":", cg.storage)
+
 	return err
 }
 

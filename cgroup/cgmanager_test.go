@@ -15,12 +15,11 @@ func setupCGManager(t *testing.T, numItems int) (*CGManager, error) {
 	source, err := queue.Open(sourceQueueName, dir, &options)
 	assert.NoError(t, err)
 
-	for i := 0; i < numItems; i++ {
+	for i := 0; i < numItems+1; i++ {
 		source.Enqueue([]byte(strconv.Itoa(i)))
 	}
 
 	// dequeue first element so head is not 0
-	// remaing queue size is 9
 	source.GetNext()
 	return NewCGManager(storagePath, source)
 }
@@ -36,7 +35,36 @@ func Test_NewCGManager(t *testing.T) {
 	defer cleanupCGManager(m)
 	assert.NoError(t, err)
 	assert.False(t, m.source.IsEmpty())
-	assert.EqualValues(t, 9, m.source.Length())
+	assert.EqualValues(t, 10, m.source.Length())
+}
+
+func Test_initializeCGManager(t *testing.T) {
+	m, err := setupCGManager(t, 10)
+	defer cleanupCGManager(m)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 10, m.source.Length())
+
+	// Create 5 consumer groups and read some values from each
+	for i := 1; i < 5; i++ {
+		cg, err := m.ConsumerGroup(strconv.Itoa(i))
+		assert.NoError(t, err)
+		for j := 1; j <= i; j++ {
+			cg.GetNext()
+		}
+	}
+
+	// Re-open consumer group manager again and check for initialized values
+	m.Close()
+	m, err = NewCGManager(storagePath, m.source)
+	assert.NoError(t, err)
+
+	for item := range m.ConsumerGroupIterator() {
+		assert.NotNil(t, item.Val)
+		cg := item.Val.(*ConsumerGroup)
+		i, _ := strconv.Atoi(item.Key)
+		assert.EqualValues(t, 10-i, cg.Length())
+		i++
+	}
 }
 
 func Test_ConsumerGroupAndIteration(t *testing.T) {
@@ -48,7 +76,7 @@ func Test_ConsumerGroupAndIteration(t *testing.T) {
 	for _, name := range names {
 		cg, err := m.ConsumerGroup(name)
 		assert.NoError(t, err)
-		assert.EqualValues(t, 9, cg.Length())
+		assert.EqualValues(t, 10, cg.Length())
 		assert.False(t, cg.IsEmpty())
 
 		value, err := cg.GetNext()
@@ -59,14 +87,14 @@ func Test_ConsumerGroupAndIteration(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "2", string(value))
 
-		assert.EqualValues(t, 7, cg.Length())
-		assert.EqualValues(t, 9, cg.Source().Length())
+		assert.EqualValues(t, 8, cg.Length())
+		assert.EqualValues(t, 10, cg.Source().Length())
 	}
 
 	for item := range m.ConsumerGroupIterator() {
 		assert.NotNil(t, item.Val)
 		cg := item.Val.(queue.Consumer)
-		assert.EqualValues(t, 7, cg.Length())
+		assert.EqualValues(t, 8, cg.Length())
 		value, err := cg.GetNext()
 		assert.NoError(t, err)
 		assert.Equal(t, "3", string(value))

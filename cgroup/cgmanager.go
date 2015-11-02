@@ -1,12 +1,14 @@
 package cgroup
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/bogdanovich/siberite/queue"
 	"github.com/streamrail/concurrent-map"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // CGManager represents multiple consumer group manager
@@ -25,7 +27,10 @@ func NewCGManager(storagePath string,
 	m := &CGManager{cmap: cmap.New(), storagePath: storagePath, source: source}
 	var err error
 	m.storage, err = leveldb.OpenFile(storagePath, &opt.Options{})
-	return m, err
+	if err != nil {
+		return m, err
+	}
+	return m, m.initialize()
 }
 
 // ConsumerGroup returns queue interface for provided consumer group name
@@ -63,4 +68,23 @@ func (m *CGManager) get(key string) (*ConsumerGroup, bool) {
 		return val.(*ConsumerGroup), ok
 	}
 	return nil, ok
+}
+
+func (m *CGManager) initialize() error {
+	var (
+		err    error
+		cgName string
+	)
+
+	iter := m.storage.NewIterator(util.BytesPrefix([]byte(cgCursorPrefix)), nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		cgName = strings.TrimPrefix(string(iter.Key()), cgCursorPrefix)
+		_, err = m.ConsumerGroup(cgName)
+		if err != nil {
+			return err
+		}
+	}
+	return iter.Error()
 }

@@ -29,10 +29,11 @@ type Controller struct {
 
 // Command represents a client command
 type Command struct {
-	Name       string
-	QueueName  string
-	SubCommand string
-	DataSize   int
+	Name          string
+	QueueName     string
+	SubCommand    string
+	ConsumerGroup string
+	DataSize      int
 }
 
 // NewSession creates and initializes new controller
