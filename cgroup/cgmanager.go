@@ -1,0 +1,66 @@
+package cgroup
+
+import (
+	"sync"
+
+	"github.com/bogdanovich/siberite/queue"
+	"github.com/streamrail/concurrent-map"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+)
+
+// CGManager represents multiple consumer group manager
+type CGManager struct {
+	cmap        cmap.ConcurrentMap
+	storage     *leveldb.DB
+	storagePath string
+	source      *queue.Queue
+	sync.Mutex
+}
+
+// NewCGManager initializes new consumer group manager
+func NewCGManager(storagePath string,
+	source *queue.Queue) (*CGManager, error) {
+
+	m := &CGManager{cmap: cmap.New(), storagePath: storagePath, source: source}
+	var err error
+	m.storage, err = leveldb.OpenFile(storagePath, &opt.Options{})
+	return m, err
+}
+
+// ConsumerGroup returns queue interface for provided consumer group name
+func (m *CGManager) ConsumerGroup(name string) (*ConsumerGroup, error) {
+	cg, ok := m.get(name)
+	if !ok {
+		m.Lock()
+		defer m.Unlock()
+		if cg, ok = m.get(name); !ok {
+			var err error
+			cg, err = NewConsumerGroup(name, m.source, m.storage)
+			if err != nil {
+				return nil, err
+			}
+			m.cmap.Set(name, cg)
+		}
+	}
+	return cg, nil
+}
+
+// ConsumerGroupIterator iterates through existing consumer groups
+func (m *CGManager) ConsumerGroupIterator() <-chan cmap.Tuple {
+	return m.cmap.IterBuffered()
+}
+
+// Close consumer group manager
+func (m *CGManager) Close() {
+	m.storage.Close()
+	m.cmap = nil
+}
+
+func (m *CGManager) get(key string) (*ConsumerGroup, bool) {
+	val, ok := m.cmap.Get(key)
+	if ok {
+		return val.(*ConsumerGroup), ok
+	}
+	return nil, ok
+}
