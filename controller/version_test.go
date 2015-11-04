@@ -3,16 +3,12 @@ package controller
 import (
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_Version(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	err = controller.Version()
 	assert.Nil(t, err)

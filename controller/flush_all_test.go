@@ -3,17 +3,12 @@ package controller
 import (
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_FlushAll(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 2)
+	defer cleanupControllerTest(repo)
 
 	err = controller.FlushAll()
 	assert.Nil(t, err)

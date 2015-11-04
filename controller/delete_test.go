@@ -3,21 +3,12 @@ package controller
 import (
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_Delete(t *testing.T) {
-	repo, _ := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
-
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
-
-	q.Enqueue([]byte("1"))
+	repo, controller, mockTCPConn := setupControllerTest(t, 1)
+	defer cleanupControllerTest(repo)
 
 	command := []string{"delete", "test"}
 	err = controller.Delete(command)

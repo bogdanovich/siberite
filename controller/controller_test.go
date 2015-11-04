@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,26 +16,49 @@ var dir = "./test_data"
 var name = "test"
 var err error
 
-type MockTCPConn struct {
+type mockTCPConn struct {
 	WriteBuffer bytes.Buffer
 	ReadBuffer  bytes.Buffer
 }
 
-func NewMockTCPConn() *MockTCPConn {
-	conn := &MockTCPConn{}
+func newMockTCPConn() *mockTCPConn {
+	conn := &mockTCPConn{}
 	return conn
 }
 
-func (conn *MockTCPConn) Read(b []byte) (int, error) {
+func (conn *mockTCPConn) Read(b []byte) (int, error) {
 	return conn.ReadBuffer.Read(b)
 }
 
-func (conn *MockTCPConn) Write(b []byte) (int, error) {
+func (conn *mockTCPConn) Write(b []byte) (int, error) {
 	return conn.WriteBuffer.Write(b)
 }
 
-func (conn *MockTCPConn) SetDeadline(t time.Time) error {
+func (conn *mockTCPConn) SetDeadline(t time.Time) error {
 	return nil
+}
+
+func setupControllerTest(t *testing.T, qSize int) (*repository.QueueRepository,
+	*Controller, *mockTCPConn) {
+
+	repo, err := repository.NewRepository(dir)
+	assert.NoError(t, err)
+
+	mockTCPConn := newMockTCPConn()
+	controller := NewSession(mockTCPConn, repo)
+
+	q, err := repo.GetQueue("test")
+	assert.NoError(t, err)
+
+	for i := 0; i < qSize; i++ {
+		q.Enqueue([]byte(strconv.Itoa(i)))
+	}
+
+	return repo, controller, mockTCPConn
+}
+
+func cleanupControllerTest(repo *repository.QueueRepository) {
+	repo.DeleteAllQueues()
 }
 
 func TestMain(m *testing.M) {
@@ -49,12 +73,8 @@ func TestMain(m *testing.M) {
 }
 
 func Test_NewSession_FinishSession(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	c := NewSession(mockTCPConn, repo)
+	repo, c, _ := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	assert.Equal(t, uint64(1), repo.Stats.CurrentConnections)
 	assert.Equal(t, uint64(1), repo.Stats.TotalConnections)
@@ -64,12 +84,8 @@ func Test_NewSession_FinishSession(t *testing.T) {
 }
 
 func Test_ReadFirstMessage(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "GET work\r\n")
 	message, err := controller.ReadFirstMessage()
@@ -83,12 +99,8 @@ func Test_ReadFirstMessage(t *testing.T) {
 }
 
 func Test_UnknownCommand(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	err = controller.UnknownCommand()
 	assert.Equal(t, "ERROR Unknown command", err.Error())
@@ -97,12 +109,8 @@ func Test_UnknownCommand(t *testing.T) {
 }
 
 func Test_SendError(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	controller.SendError("Test error message")
 	assert.Equal(t, "Test error message\r\n", mockTCPConn.WriteBuffer.String())

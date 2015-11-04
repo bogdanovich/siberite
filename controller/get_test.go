@@ -3,7 +3,6 @@ package controller
 import (
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,300 +41,333 @@ func Test_parseGetCommand(t *testing.T) {
 	}
 }
 
-// Initialize queue 'test' with 1 item
-// get test = value
-// get test = empty
-// get test/close = empty
-// get test/abort = empty
 func Test_Get(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
+	repo, controller, mockTCPConn := setupControllerTest(t, 1)
+	defer cleanupControllerTest(repo)
 
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	queueNames := []string{"test:1", "test:cgroup", "test"}
 
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
+	for _, queueName := range queueNames {
+		// When queue has items
+		// get test = value
+		command := []string{"get", queueName}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	q.Enqueue([]byte("0123456789"))
+		mockTCPConn.WriteBuffer.Reset()
 
-	// When queue has items
-	// get test = value
-	command := []string{"get", "test"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 10\r\n0123456789\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// When queue is empty
+		// get test = empty
+		command = []string{"get", queueName}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// When queue is empty
-	// get test = empty
-	command = []string{"get", "test"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		// When queue is empty
+		// get test/close = empty
+		command = []string{"get", queueName + "/close"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// When queue is empty
-	// get test/close = empty
-	command = []string{"get", "test/close"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		// When queue is empty
+		// get test/abort = empty
+		command = []string{"get", queueName + "/close"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
-
-	// When queue is empty
-	// get test/abort = empty
-	command = []string{"get", "test/close"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		mockTCPConn.WriteBuffer.Reset()
+	}
 }
 
-// Initialize test queue with 4 items
-// get test/open = value
+// Initialize queueName with 4 items
+// get queueName/open = value
 // get test = error
-// get test/close = empty
-// get test/open = value
-// get test/open = error
-// get test/abort = empty
-// get test/open = value
-// get test/peek = next value
-// get test/close = empty
+// get queueName/close = empty
+// get queueName/open = value
+// get queueName/open = error
+// get queueName/abort = empty
+// get queueName/open = value
+// get queueName/peek = next value
+// get queueName/close = empty
 func Test_GetOpen(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
+	repo, controller, mockTCPConn := setupControllerTest(t, 4)
+	defer cleanupControllerTest(repo)
 
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	queueNames := []string{"test:1", "test:cgroup", "test"}
 
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
+	for _, queueName := range queueNames {
+		// get queueName/open = value
+		command := []string{"get", queueName + "/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	q.Enqueue([]byte("1"))
-	q.Enqueue([]byte("2"))
-	q.Enqueue([]byte("3"))
-	q.Enqueue([]byte("4"))
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/open = value
-	command := []string{"get", "test/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// get test = error
+		command = []string{"get", queueName}
+		err = controller.Get(command)
+		assert.Equal(t, "CLIENT_ERROR Close current item first", err.Error())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test = error
-	command = []string{"get", "test"}
-	err = controller.Get(command)
-	assert.Equal(t, "CLIENT_ERROR Close current item first", err.Error())
+		// get queueName/close = value
+		command = []string{"get", queueName + "/close"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/close = value
-	command = []string{"get", "test/close"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/open = value
+		command = []string{"get", queueName + "/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		// get queueName/open = error
+		command = []string{"get", queueName + "/open"}
+		err = controller.Get(command)
+		assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
 
-	// get test/open = value
-	command = []string{"get", "test/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/open = error
-	command = []string{"get", "test/open"}
-	err = controller.Get(command)
-	assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
+		// get queueName/abort = value
+		command = []string{"get", queueName + "/abort"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/abort = value
-	command = []string{"get", "test/abort"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/open = value
+		command = []string{"get", queueName + "/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/open = value
-	command = []string{"get", "test/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/peek = value
+		command = []string{"get", queueName + "/peek"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/peek = value
-	command = []string{"get", "test/peek"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n3\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/close = value
+		command = []string{"get", queueName + "/close"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
+	}
 
-	// get test/close = value
-	command = []string{"get", "test/close"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 }
 
 // Initialize test queue with 2 items
-// get test/open = value
+// get queueName/open = value
 // FinishSession (disconnect)
 // NewSession
-// get test = same value
+// get queueName = same value
 func Test_GetOpen_Disconnect(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
+	repo, controller, mockTCPConn := setupControllerTest(t, 2)
+	defer cleanupControllerTest(repo)
 
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	queueNames := []string{"test:1", "test:cgroup", "test"}
 
-	repo.FlushQueue("test")
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
+	for _, queueName := range queueNames {
+		// get queueName/open = value
+		command := []string{"get", queueName + "/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	q.Enqueue([]byte("1"))
-	q.Enqueue([]byte("2"))
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/open = value
-	command := []string{"get", "test/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		controller.FinishSession()
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn = newMockTCPConn()
+		controller = NewSession(mockTCPConn, repo)
 
-	controller.FinishSession()
+		// get queueName = same value
+		command = []string{"get", queueName}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn = NewMockTCPConn()
-	controller = NewSession(mockTCPConn, repo)
-
-	// get test = same value
-	command = []string{"get", "test"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		mockTCPConn.WriteBuffer.Reset()
+	}
 }
 
-// Initialize test queue with 4 items
-// get test/close/open = value
-// get test = error
-// get test/t=10/close/open = value
-// get test/close/open/t=1000 = next value
+// Initialize queueName with 4 items
+// get queueName/close/open = value
+// get queueName = error
+// get queueName/t=10/close/open = value
+// get queueName/close/open/t=1000 = next value
 // FinishSession (disconnect)
-// get test/close/t=88/open = same value
+// get queueName/close/t=88/open = same value
 func Test_GetCloseOpen(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
+	repo, controller, mockTCPConn := setupControllerTest(t, 4)
+	defer cleanupControllerTest(repo)
 
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	queueNames := []string{"test:1", "test:cgroup", "test"}
 
-	repo.FlushQueue("test")
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
+	for _, queueName := range queueNames {
+		// get queueName/close/open = 1
+		command := []string{"get", queueName + "/close/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	q.Enqueue([]byte("1"))
-	q.Enqueue([]byte("2"))
-	q.Enqueue([]byte("3"))
-	q.Enqueue([]byte("4"))
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/close/open = 1
-	command := []string{"get", "test/close/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName = error
+		command = []string{"get", queueName}
+		err = controller.Get(command)
+		assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test = error
-	command = []string{"get", "test"}
-	err = controller.Get(command)
-	assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
+		// get queueName/abort = value
+		command = []string{"get", queueName + "/abort"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/abort = value
-	command = []string{"get", "test/abort"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/t=10/close/open = value
+		command = []string{"get", queueName + "/t=10/close/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/t=10/close/open = value
-	command = []string{"get", "test/t=10/close/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		// get queueName/close/open/t=1000 = next value
+		command = []string{"get", queueName + "/close/open/t=1000"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn.WriteBuffer.Reset()
 
-	// get test/close/open/t=1000 = next value
-	command = []string{"get", "test/close/open/t=1000"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		controller.FinishSession()
 
-	mockTCPConn.WriteBuffer.Reset()
+		mockTCPConn = newMockTCPConn()
+		controller = NewSession(mockTCPConn, repo)
 
-	controller.FinishSession()
+		// get queueName = same value
+		command = []string{"get", queueName + "/t=88/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	mockTCPConn = NewMockTCPConn()
-	controller = NewSession(mockTCPConn, repo)
-
-	// get test = same value
-	command = []string{"get", "test/t=88/open"}
-	err = controller.Get(command)
-	assert.Nil(t, err)
-	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+		mockTCPConn.WriteBuffer.Reset()
+	}
 }
 
-// Initialize test queue with 2 items
+// Initialize queueName with 2 items
 // gets test/open = value
 // gets test = error
 // GETS test/t=10/close/open = value
 func Test_Gets(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
+	repo, controller, mockTCPConn := setupControllerTest(t, 2)
+	defer cleanupControllerTest(repo)
 
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	queueNames := []string{"test:1", "test:cgroup", "test"}
 
-	repo.FlushQueue("test")
-	q, err := repo.GetQueue("test")
-	assert.Nil(t, err)
+	for _, queueName := range queueNames {
+		// gets test/open = 1
+		command := []string{"gets", queueName}
+		err = controller.Get(command)
+		assert.NoError(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
-	q.Enqueue([]byte("1"))
-	q.Enqueue([]byte("2"))
+		mockTCPConn.WriteBuffer.Reset()
 
-	// gets test/open = 1
-	command := []string{"gets", "test"}
+		// GETS test/t=10/close/open = 2
+		command = []string{"GETS", queueName + "/t=10/close/open"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+
+		mockTCPConn.WriteBuffer.Reset()
+
+		// GETS test/t=10/close = END
+		command = []string{"GETS", queueName + "/t=10/close"}
+		err = controller.Get(command)
+		assert.Nil(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+
+		mockTCPConn.WriteBuffer.Reset()
+	}
+}
+
+// Initialize original queue with 3 items
+// Read first value using consumer group
+// Read first two items from the source queue
+// Continue reading using initial consumer group
+// It should return third item of original queue
+// Read one more item from consumer goup (returns nothing)
+// Add one item to the original queue
+// Read an item from consumer group (returns previously added value)
+func Test_Get_ConsumerGroup(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 3)
+	defer cleanupControllerTest(repo)
+
+	command := []string{"get", "test:cgroup"}
 	err = controller.Get(command)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
+	assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+	command = []string{"get", "test"}
+	err = controller.Get(command)
+	assert.NoError(t, err)
+	assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+	command = []string{"get", "test"}
+	err = controller.Get(command)
+	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n1\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
-	// GETS test/t=10/close/open = 2
-	command = []string{"GETS", "test/t=10/close/open"}
+	command = []string{"get", "test:cgroup"}
 	err = controller.Get(command)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
+
+	command = []string{"get", "test:cgroup"}
+	err = controller.Get(command)
+	assert.NoError(t, err)
+	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+
+	mockTCPConn.WriteBuffer.Reset()
+
+	q, err := repo.GetQueue("test")
+	assert.NoError(t, err)
+	q.Enqueue([]byte("3"))
+
+	command = []string{"get", "test:cgroup"}
+	err = controller.Get(command)
+	assert.NoError(t, err)
+	assert.Equal(t, "VALUE test 0 1\r\n3\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 }

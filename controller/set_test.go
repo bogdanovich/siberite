@@ -4,17 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_Set(t *testing.T) {
-	repo, err := repository.NewRepository(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	command := []string{"set", "test", "0", "0", "10"}
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0123567890\r\n")
