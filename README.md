@@ -110,6 +110,7 @@ END
 ## TODO
 
   - Add multiple consumer groups `get queue_name:consumer_group/open`
+  - Add fanout queues support
 
 
 ## Not supported
