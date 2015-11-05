@@ -91,22 +91,20 @@ func (repo *QueueRepository) DeleteAllQueues() error {
 	return nil
 }
 
-// FlushQueue removes all items from queue
-func (repo *QueueRepository) FlushQueue(key string) error {
-	err := repo.DeleteQueue(key)
-	if err != nil {
-		return err
-	}
-	// initialize new queue
-	_, err = repo.GetQueue(key)
-	return err
-}
-
 // FlushAllQueues removes all items from all the queues
 func (repo *QueueRepository) FlushAllQueues() error {
-	var err error
+	var (
+		err error
+		q   *cgroup.CGQueue
+	)
+
 	for pair := range repo.storage.IterBuffered() {
-		err = repo.FlushQueue(pair.Key)
+		q, err = repo.GetQueue(pair.Key)
+		if err != nil {
+			return err
+		}
+
+		err = q.Flush()
 		if err != nil {
 			return err
 		}

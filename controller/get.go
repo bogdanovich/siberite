@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
-
-	"github.com/bogdanovich/siberite/queue"
 )
 
 var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
@@ -46,18 +44,6 @@ func (c *Controller) Get(input []string) error {
 	fmt.Fprint(c.rw.Writer, "END\r\n")
 	c.rw.Writer.Flush()
 	return nil
-}
-
-func (c *Controller) getConsumer(cmd *Command) (queue.Consumer, error) {
-	if cmd.ConsumerGroup == "" {
-		return c.repo.GetQueue(cmd.QueueName)
-	}
-
-	q, err := c.repo.GetQueue(cmd.QueueName)
-	if err == nil {
-		return q.ConsumerGroup(cmd.ConsumerGroup)
-	}
-	return q, err
 }
 
 func (c *Controller) get(cmd *Command) error {

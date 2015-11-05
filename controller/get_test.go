@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_parseGetCommand(t *testing.T) {
+func Test_Controller_parseGetCommand(t *testing.T) {
 	testCases := map[string]Command{
 		"work":                            Command{},
 		"work/open":                       Command{SubCommand: "open"},
@@ -41,7 +41,7 @@ func Test_parseGetCommand(t *testing.T) {
 	}
 }
 
-func Test_Get(t *testing.T) {
+func Test_Controller_Get(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 1)
 	defer cleanupControllerTest(repo)
 
@@ -96,7 +96,7 @@ func Test_Get(t *testing.T) {
 // get queueName/open = value
 // get queueName/peek = next value
 // get queueName/close = empty
-func Test_GetOpen(t *testing.T) {
+func Test_Controller_GetOpen(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 4)
 	defer cleanupControllerTest(repo)
 
@@ -179,7 +179,7 @@ func Test_GetOpen(t *testing.T) {
 // FinishSession (disconnect)
 // NewSession
 // get queueName = same value
-func Test_GetOpen_Disconnect(t *testing.T) {
+func Test_Controller_GetOpen_Disconnect(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 2)
 	defer cleanupControllerTest(repo)
 
@@ -216,7 +216,7 @@ func Test_GetOpen_Disconnect(t *testing.T) {
 // get queueName/close/open/t=1000 = next value
 // FinishSession (disconnect)
 // get queueName/close/t=88/open = same value
-func Test_GetCloseOpen(t *testing.T) {
+func Test_Controller_GetCloseOpen(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 4)
 	defer cleanupControllerTest(repo)
 
@@ -281,7 +281,7 @@ func Test_GetCloseOpen(t *testing.T) {
 // gets test/open = value
 // gets test = error
 // GETS test/t=10/close/open = value
-func Test_Gets(t *testing.T) {
+func Test_Controller_Gets(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 2)
 	defer cleanupControllerTest(repo)
 
@@ -322,7 +322,7 @@ func Test_Gets(t *testing.T) {
 // Read one more item from consumer goup (returns nothing)
 // Add one item to the original queue
 // Read an item from consumer group (returns previously added value)
-func Test_Get_ConsumerGroup(t *testing.T) {
+func Test_Controller_Get_ConsumerGroup(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 3)
 	defer cleanupControllerTest(repo)
 

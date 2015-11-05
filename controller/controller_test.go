@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func Test_NewSession_FinishSession(t *testing.T) {
+func Test_Controller_NewSession_FinishSession(t *testing.T) {
 	repo, c, _ := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
@@ -83,7 +83,7 @@ func Test_NewSession_FinishSession(t *testing.T) {
 	assert.Equal(t, uint64(0), repo.Stats.CurrentConnections)
 }
 
-func Test_ReadFirstMessage(t *testing.T) {
+func Test_Controller_ReadFirstMessage(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
@@ -98,7 +98,7 @@ func Test_ReadFirstMessage(t *testing.T) {
 	assert.Equal(t, "SET work 0 0 10\r\n", message)
 }
 
-func Test_UnknownCommand(t *testing.T) {
+func Test_Controller_UnknownCommand(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
@@ -108,10 +108,26 @@ func Test_UnknownCommand(t *testing.T) {
 
 }
 
-func Test_SendError(t *testing.T) {
+func Test_Controller_SendError(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
 	controller.SendError("Test error message")
 	assert.Equal(t, "Test error message\r\n", mockTCPConn.WriteBuffer.String())
+}
+
+func Test_Controller_parseCommand(t *testing.T) {
+	testCases := map[string]Command{
+		"work":      Command{},
+		"work:cg":   Command{ConsumerGroup: "cg"},
+		"work:cg:1": Command{ConsumerGroup: "cg"},
+	}
+
+	for input, command := range testCases {
+		cmd := parseGetCommand([]string{"get", input})
+		assert.Equal(t, "get", cmd.Name, input)
+		assert.Equal(t, "work", cmd.QueueName, input)
+		assert.Equal(t, command.SubCommand, cmd.SubCommand, input)
+		assert.Equal(t, command.ConsumerGroup, cmd.ConsumerGroup, input)
+	}
 }

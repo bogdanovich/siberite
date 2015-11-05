@@ -51,6 +51,20 @@ func (m *CGManager) ConsumerGroup(name string) (*ConsumerGroup, error) {
 	return cg, nil
 }
 
+// DeleteConsumerGroup deletes specified consumer group
+func (m *CGManager) DeleteConsumerGroup(name string) error {
+	cg, ok := m.get(name)
+	if !ok {
+		return nil
+	}
+	err := cg.Delete()
+	if err != nil {
+		return err
+	}
+	m.cmap.Remove(name)
+	return nil
+}
+
 // ConsumerGroupIterator iterates through existing consumer groups
 func (m *CGManager) ConsumerGroupIterator() <-chan cmap.Tuple {
 	return m.cmap.IterBuffered()

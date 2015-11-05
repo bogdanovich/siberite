@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/bogdanovich/siberite/queue"
 	"github.com/bogdanovich/siberite/repository"
 )
 
@@ -74,4 +76,27 @@ func (c *Controller) SendError(errorMessage string) {
 func (c *Controller) setCurrentState(cmd *Command, currentValue []byte) {
 	c.currentCommand = cmd
 	c.currentValue = currentValue
+}
+
+func (c *Controller) getConsumer(cmd *Command) (queue.Consumer, error) {
+	if cmd.ConsumerGroup == "" {
+		return c.repo.GetQueue(cmd.QueueName)
+	}
+
+	q, err := c.repo.GetQueue(cmd.QueueName)
+	if err == nil {
+		return q.ConsumerGroup(cmd.ConsumerGroup)
+	}
+	return q, err
+}
+
+func parseCommand(input []string) *Command {
+	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
+	tokens := make([]string, 3)
+	if strings.Contains(cmd.QueueName, ":") {
+		tokens = strings.SplitN(cmd.QueueName, ":", 3)
+		cmd.QueueName = tokens[0]
+		cmd.ConsumerGroup = tokens[1]
+	}
+	return cmd
 }

@@ -49,7 +49,7 @@ func cleanupConsumerGroup(cg *ConsumerGroup) {
 	os.RemoveAll(dir)
 }
 
-func Test_initialize(t *testing.T) {
+func Test_ConsumerGroup_initialize(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cg.cursor)
@@ -64,7 +64,7 @@ func Test_initialize(t *testing.T) {
 	assert.EqualError(t, err, "cgroup: name is not alphanumeric")
 }
 
-func Test_GetNextAndPutBack(t *testing.T) {
+func Test_ConsumerGroup_GetNextAndPutBack(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 5)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -107,7 +107,7 @@ func Test_GetNextAndPutBack(t *testing.T) {
 	assert.EqualError(t, err, "queue: ID is out of bounds")
 }
 
-func Test_Peek(t *testing.T) {
+func Test_ConsumerGroup_Peek(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -144,7 +144,7 @@ func Test_Peek(t *testing.T) {
 	}
 }
 
-func Test_Length(t *testing.T) {
+func Test_ConsumerGroup_Length(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -167,7 +167,7 @@ func Test_Length(t *testing.T) {
 	assert.EqualValues(t, cg.Source().Length()+1, cg.Length())
 }
 
-func Test_IsEmpty(t *testing.T) {
+func Test_ConsumerGroup_IsEmpty(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 0)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -182,7 +182,7 @@ func Test_IsEmpty(t *testing.T) {
 	assert.False(t, cg.IsEmpty())
 }
 
-func Test_Reset(t *testing.T) {
+func Test_ConsumerGroup_Flush(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -194,11 +194,11 @@ func Test_Reset(t *testing.T) {
 	cg.PutBack(value)
 	assert.EqualValues(t, 10, cg.Length())
 
-	cg.Reset()
+	cg.Flush()
 	assert.EqualValues(t, 10, cg.Length())
 }
 
-func Test_Delete(t *testing.T) {
+func Test_ConsumerGroup_Delete(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -214,7 +214,7 @@ func Test_Delete(t *testing.T) {
 	assert.EqualValues(t, 10, cg.Length())
 }
 
-func Test_Stats(t *testing.T) {
+func Test_ConsumerGroup_Stats(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 0)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)
@@ -224,7 +224,7 @@ func Test_Stats(t *testing.T) {
 	assert.EqualValues(t, 1, stats.OpenReads)
 }
 
-func Test_loadAndSaveCursor(t *testing.T) {
+func Test_ConsumerGroup_loadAndSaveCursor(t *testing.T) {
 	cg, err := setupConsumerGroup(t, cgName, 10)
 	defer cleanupConsumerGroup(cg)
 	assert.NoError(t, err)

@@ -30,7 +30,7 @@ func cleanupCGManager(m *CGManager) {
 	os.RemoveAll(dir)
 }
 
-func Test_NewCGManager(t *testing.T) {
+func Test_CGManager_NewCGManager(t *testing.T) {
 	m, err := setupCGManager(t, 10)
 	defer cleanupCGManager(m)
 	assert.NoError(t, err)
@@ -38,7 +38,7 @@ func Test_NewCGManager(t *testing.T) {
 	assert.EqualValues(t, 10, m.source.Length())
 }
 
-func Test_initializeCGManager(t *testing.T) {
+func Test_CGManager_initialize(t *testing.T) {
 	m, err := setupCGManager(t, 10)
 	defer cleanupCGManager(m)
 	assert.NoError(t, err)
@@ -67,7 +67,7 @@ func Test_initializeCGManager(t *testing.T) {
 	}
 }
 
-func Test_ConsumerGroupAndIteration(t *testing.T) {
+func Test_CGManager_ConsumerGroupAndIteration(t *testing.T) {
 	m, err := setupCGManager(t, 10)
 	defer cleanupCGManager(m)
 	assert.NoError(t, err)
@@ -100,4 +100,34 @@ func Test_ConsumerGroupAndIteration(t *testing.T) {
 		assert.Equal(t, "3", string(value))
 	}
 
+}
+
+func Test_CGManager_DeleteConsumerGroup(t *testing.T) {
+	m, err := setupCGManager(t, 10)
+	defer cleanupCGManager(m)
+	assert.NoError(t, err)
+
+	cg, err := m.ConsumerGroup("test_cgroup")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 10, cg.Length())
+	assert.False(t, cg.IsEmpty())
+
+	value, err := cg.GetNext()
+	assert.NoError(t, err)
+	assert.Equal(t, "1", string(value))
+
+	value, err = cg.GetNext()
+	assert.NoError(t, err)
+	assert.Equal(t, "2", string(value))
+
+	err = m.DeleteConsumerGroup("test_cgroup")
+	assert.NoError(t, err)
+
+	for _ = range m.ConsumerGroupIterator() {
+		assert.Fail(t, "should not have any consumer groups")
+	}
+
+	cg, err = m.ConsumerGroup("test_cgroup")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 10, cg.Length())
 }

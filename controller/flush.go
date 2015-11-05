@@ -11,12 +11,20 @@ import (
 // Response:
 // END
 func (c *Controller) Flush(input []string) error {
-	cmd := &Command{Name: input[0], QueueName: input[1]}
-	err := c.repo.FlushQueue(cmd.QueueName)
+	cmd := parseCommand(input)
+
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't flush queue %s: %s", cmd.QueueName, err.Error())
+		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
 		return errors.New("SERVER_ERROR " + err.Error())
 	}
+
+	err = q.Flush()
+	if err != nil {
+		log.Printf("Flush error %s: %s", cmd, err.Error())
+		return errors.New("SERVER_ERROR " + err.Error())
+	}
+
 	fmt.Fprint(c.rw.Writer, "END\r\n")
 	c.rw.Writer.Flush()
 	return nil

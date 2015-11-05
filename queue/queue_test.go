@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -376,8 +375,46 @@ func testDeleteAll(t *testing.T, q *Queue) {
 	assert.EqualValues(t, 10, q.Length())
 	err = q.DeleteAll()
 	assert.NoError(t, err)
-	fmt.Println(q.Length())
 	assert.True(t, q.IsEmpty())
+}
+
+func Test_Flush(t *testing.T) {
+	q, _ := Open(name, dir, &options)
+	testFlush(t, q, false)
+	q.Drop()
+
+	q, _ = Open(name, dir, &optionsWithKeyPrefix)
+	testFlush(t, q, false)
+	q.Drop()
+
+	withSharedQueues(t, func(q *Queue) {
+		testFlush(t, q, true)
+	})
+}
+
+func testFlush(t *testing.T, q *Queue, isShared bool) {
+	values := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		values[i] = strconv.Itoa(i)
+	}
+
+	for i := 0; i < len(values); i++ {
+		assert.EqualValues(t, i, q.Length())
+		q.Enqueue([]byte(values[i]))
+	}
+
+	assert.EqualValues(t, 10, q.Length())
+	err = q.Flush()
+	if !isShared {
+		assert.NoError(t, err)
+		assert.EqualValues(t, 0, q.Length())
+		assert.True(t, q.IsEmpty())
+	} else {
+		assert.EqualError(t, err, "queue: can't flush shared queue")
+		assert.EqualValues(t, 10, q.Length())
+		assert.False(t, q.IsEmpty())
+	}
+
 }
 
 func Test_Stats(t *testing.T) {

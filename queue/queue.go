@@ -19,6 +19,7 @@ type Consumer interface {
 	GetNext() ([]byte, error)
 	PutBack([]byte) error
 	Peek() ([]byte, error)
+	Flush() error
 	Length() uint64
 	IsEmpty() bool
 	Stats() *Stats
@@ -97,10 +98,22 @@ func (q *Queue) Close() {
 
 // Drop closes and deletes leveldb database
 func (q *Queue) Drop() {
-	q.Close()
-	if !q.isShared {
-		os.RemoveAll(q.Path())
+	if q.isShared {
+		return
 	}
+	q.Close()
+	os.RemoveAll(q.Path())
+}
+
+// Flush flushes all queue data
+func (q *Queue) Flush() error {
+	if q.isShared {
+		return errors.New("queue: can't flush shared queue")
+	}
+	q.Lock()
+	defer q.Unlock()
+	q.Drop()
+	return q.open()
 }
 
 // Head returns current head offset of the queue
@@ -234,8 +247,6 @@ func (q *Queue) Path() string {
 }
 
 func (q *Queue) open() error {
-	q.Lock()
-	defer q.Unlock()
 	if alphaNumericRegexp.MatchString(q.Name) {
 		return errors.New("queue: name is not alphanumeric")
 	}

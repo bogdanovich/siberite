@@ -35,7 +35,7 @@ func Test_CGQueueOpen(t *testing.T) {
 	assert.EqualValues(t, 10, q.Length())
 }
 
-func Test_Queue(t *testing.T) {
+func Test_CGQueue(t *testing.T) {
 	q, err := setupCGQueue(t, 10)
 	defer cleanupCGQueue(q)
 	assert.NoError(t, err)
@@ -58,7 +58,7 @@ func Test_Queue(t *testing.T) {
 
 }
 
-func Test_ConsumerGroups(t *testing.T) {
+func Test_CGQueue_ConsumerGroups(t *testing.T) {
 	q, err := setupCGQueue(t, 4)
 	defer cleanupCGQueue(q)
 	assert.NoError(t, err)
@@ -111,17 +111,27 @@ func Test_ConsumerGroups(t *testing.T) {
 
 }
 
-func Test_Path(t *testing.T) {
+func Test_CGQueue_Path(t *testing.T) {
 	q, err := setupCGQueue(t, 10)
 	defer cleanupCGQueue(q)
 	assert.NoError(t, err)
 	assert.Equal(t, "./test_data/cgqueue", q.Path())
 }
 
-func Test_Drop(t *testing.T) {
+func Test_CGQueue_Drop(t *testing.T) {
 	q, err := setupCGQueue(t, 10)
 	assert.NoError(t, err)
 	q.Drop()
 	_, err = os.Stat(q.Path())
 	assert.NotNil(t, err, "Path should not exist")
+}
+
+func Test_CGQueue_Flush(t *testing.T) {
+	q, err := setupCGQueue(t, 5)
+	assert.NoError(t, err)
+	q.Flush()
+	_, err = os.Stat(q.Path())
+	assert.NoError(t, err)
+	assert.True(t, q.IsEmpty())
+	assert.EqualValues(t, 0, q.Length())
 }

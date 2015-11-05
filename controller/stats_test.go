@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Stats(t *testing.T) {
+func Test_Controller_Stats(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 3)
 	defer cleanupControllerTest(repo)
 

@@ -126,8 +126,8 @@ func (cg *ConsumerGroup) readNextItemFromSource() (*queue.Item, error) {
 	return item, err
 }
 
-// Reset resets consumer group
-func (cg *ConsumerGroup) Reset() error {
+// Flush resets consumer group
+func (cg *ConsumerGroup) Flush() error {
 	cg.Lock()
 	defer cg.Unlock()
 	err := cg.failedReads.DeleteAll()

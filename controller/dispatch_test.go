@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Dispatch(t *testing.T) {
+func Test_Controller_Dispatch(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 

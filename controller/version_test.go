@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Version(t *testing.T) {
+func Test_Controller_Version(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
