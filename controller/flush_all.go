@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -13,7 +12,7 @@ func (c *Controller) FlushAll() error {
 	err := c.repo.FlushAllQueues()
 	if err != nil {
 		log.Printf("Can't flush all queues: %s", err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		return NewError("ERROR", err)
 	}
 	fmt.Fprint(c.rw.Writer, "Flushed all queues.\r\n")
 	c.rw.Writer.Flush()

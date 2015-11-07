@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -11,12 +10,19 @@ import (
 // Response:
 // END
 func (c *Controller) Flush(input []string) error {
-	cmd := &Command{Name: input[0], QueueName: input[1]}
-	err := c.repo.FlushQueue(cmd.QueueName)
+	cmd := parseCommand(input)
+
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't flush queue %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Printf(err.Error())
+		return NewError("ERROR", err)
 	}
+
+	err = q.Flush()
+	if err != nil {
+		return NewError("ERROR", err)
+	}
+
 	fmt.Fprint(c.rw.Writer, "END\r\n")
 	c.rw.Writer.Flush()
 	return nil

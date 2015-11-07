@@ -15,30 +15,30 @@ import (
 // Response: STORED
 func (c *Controller) Set(input []string) error {
 	if len(input) < 5 || len(input) > 6 {
-		return errors.New("ERROR Invalid input")
+		return &Error{"CLIENT_ERROR", "Invalid input"}
 	}
 
 	totalBytes, err := strconv.Atoi(input[4])
 	if err != nil {
-		return errors.New("ERROR Invalid <bytes> number")
+		return &Error{"CLIENT_ERROR", "Invalid <bytes> number"}
 	}
 
 	cmd := &Command{Name: input[0], QueueName: input[1], DataSize: totalBytes}
 
 	dataBlock, err := c.readDataBlock(cmd.DataSize)
 	if err != nil {
-		return errors.New("CLIENT_ERROR " + err.Error())
+		return NewError("CLIENT_ERROR", err)
 	}
 
 	q, err := c.repo.GetQueue(cmd.QueueName)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
 
 	err = q.Enqueue([]byte(dataBlock))
 	if err != nil {
-		return errors.New("SERVER_ERROR " + err.Error())
+		return NewError("ERROR", err)
 	}
 	fmt.Fprint(c.rw.Writer, "STORED\r\n")
 	c.rw.Writer.Flush()

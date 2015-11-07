@@ -38,7 +38,7 @@ func (c *Controller) Dispatch() error {
 	}
 
 	if err != nil {
-		c.SendError(err.Error())
+		c.SendError(err)
 		return err
 	}
 	return nil

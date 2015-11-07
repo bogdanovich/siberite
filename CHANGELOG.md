@@ -1,3 +1,12 @@
+## 0.5
+
+- Add durable cursors. An ability to consume queue multiple times
+  using `get <queue>:<cursor>` syntax
+
+- New directory structure is backwards incompatible with  v0.4.x.
+  But you can manually move each existing `data/<queue>` directory to
+  `data/<queue>/<queue>` and new siberite will pick up the data.
+
 ## 0.4.2
 
 - Enable leveldb BlockCacher (improves performance)

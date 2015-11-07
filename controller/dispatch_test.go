@@ -5,17 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Dispatch(t *testing.T) {
-	repo, err := repository.Initialize(dir)
-	defer repo.CloseAllQueues()
-	assert.Nil(t, err)
-
-	mockTCPConn := NewMockTCPConn()
-	controller := NewSession(mockTCPConn, repo)
+func Test_Controller_Dispatch(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
 
 	// Command: set test 0 0 1
 	// 1

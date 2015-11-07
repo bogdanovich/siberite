@@ -16,6 +16,7 @@ var hostAndPort = "127.0.0.1:22140"
 var err error
 
 func TestMain(m *testing.M) {
+	os.RemoveAll(dir)
 	os.Mkdir(dir, 0777)
 	result := m.Run()
 	os.RemoveAll(dir)

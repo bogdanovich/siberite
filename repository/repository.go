@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bogdanovich/siberite/queue"
+	"github.com/bogdanovich/siberite/cgroup"
 	"github.com/streamrail/concurrent-map"
 )
 
 // Version represents siberite version
-const Version = "siberite-0.4.2"
+const Version = "siberite-0.5"
 
 // QueueRepository represents a repository of queues
 type QueueRepository struct {
@@ -41,8 +41,8 @@ type StatItem struct {
 
 var err error
 
-// Initialize and open all queues in the data directory
-func Initialize(dataDir string) (*QueueRepository, error) {
+// NewRepository and open all queues in the data directory
+func NewRepository(dataDir string) (*QueueRepository, error) {
 	dataPath, err := filepath.Abs(dataDir)
 	if err != nil {
 		return nil, err
@@ -54,13 +54,13 @@ func Initialize(dataDir string) (*QueueRepository, error) {
 
 // GetQueue returns existing queue from repository,
 // creates a new one if it doesn't exist
-func (repo *QueueRepository) GetQueue(key string) (*queue.Queue, error) {
+func (repo *QueueRepository) GetQueue(key string) (*cgroup.CGQueue, error) {
 	q, ok := repo.get(key)
 	if !ok {
 		repo.Lock()
 		defer repo.Unlock()
 		if q, ok = repo.get(key); !ok {
-			q, err = queue.Open(key, repo.DataPath)
+			q, err = cgroup.CGQueueOpen(key, repo.DataPath)
 			if err != nil {
 				return nil, err
 			}
@@ -91,22 +91,20 @@ func (repo *QueueRepository) DeleteAllQueues() error {
 	return nil
 }
 
-// FlushQueue removes all items from queue
-func (repo *QueueRepository) FlushQueue(key string) error {
-	err := repo.DeleteQueue(key)
-	if err != nil {
-		return err
-	}
-	// initialize new queue
-	_, err = repo.GetQueue(key)
-	return err
-}
-
 // FlushAllQueues removes all items from all the queues
 func (repo *QueueRepository) FlushAllQueues() error {
-	var err error
+	var (
+		err error
+		q   *cgroup.CGQueue
+	)
+
 	for pair := range repo.storage.IterBuffered() {
-		err = repo.FlushQueue(pair.Key)
+		q, err = repo.GetQueue(pair.Key)
+		if err != nil {
+			return err
+		}
+
+		err = q.Flush()
 		if err != nil {
 			return err
 		}
@@ -117,7 +115,7 @@ func (repo *QueueRepository) FlushAllQueues() error {
 // CloseAllQueues closes all queues
 func (repo *QueueRepository) CloseAllQueues() error {
 	var err error
-	var q *queue.Queue
+	var q *cgroup.CGQueue
 	for pair := range repo.storage.IterBuffered() {
 		q, err = repo.GetQueue(pair.Key)
 		if err != nil {
@@ -139,11 +137,17 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", repo.Stats.TotalConnections)})
 	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", repo.Stats.CmdGet)})
 	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", repo.Stats.CmdSet)})
-	var q *queue.Queue
+	var q *cgroup.CGQueue
+	var cg *cgroup.ConsumerGroup
 	for pair := range repo.storage.IterBuffered() {
-		q = pair.Val.(*queue.Queue)
+		q = pair.Val.(*cgroup.CGQueue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
-		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats.OpenTransactions)})
+		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReads)})
+		for pair := range q.ConsumerGroupIterator() {
+			cg = pair.Val.(*cgroup.ConsumerGroup)
+			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
+			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReads)})
+		}
 	}
 	return stats
 }
@@ -156,7 +160,8 @@ func (repo *QueueRepository) Count() int {
 func (repo *QueueRepository) initialize() error {
 	dirs, err := ioutil.ReadDir(repo.DataPath)
 	if err != nil {
-		return fmt.Errorf("error opening data directory (%s): %s", repo.DataPath, err.Error())
+		return fmt.Errorf("error opening data directory (%s): %s",
+			repo.DataPath, err.Error())
 	}
 	for _, dir := range dirs {
 		if dir.IsDir() {
@@ -165,16 +170,17 @@ func (repo *QueueRepository) initialize() error {
 			if err != nil {
 				log.Fatalf("queue %s...%s", dir.Name(), err.Error())
 			}
-			log.Printf("queue \"%s\": size %d, head %d, tail %d", dir.Name(), q.Length(), q.Head(), q.Tail())
+			log.Printf("queue \"%s\": size %d, head %d, tail %d",
+				dir.Name(), q.Length(), q.Head(), q.Tail())
 		}
 	}
 	return nil
 }
 
-func (repo *QueueRepository) get(key string) (*queue.Queue, bool) {
+func (repo *QueueRepository) get(key string) (*cgroup.CGQueue, bool) {
 	val, ok := repo.storage.Get(key)
 	if ok {
-		return val.(*queue.Queue), ok
+		return val.(*cgroup.CGQueue), ok
 	}
 	return nil, ok
 }

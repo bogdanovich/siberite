@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -35,7 +34,7 @@ func (c *Controller) Get(input []string) error {
 	case "peek":
 		err = c.peek(cmd)
 	default:
-		err = errors.New("ERROR " + "Invalid command")
+		err = &Error{"ERROR", "Invalid command"}
 	}
 
 	if err != nil {
@@ -47,36 +46,36 @@ func (c *Controller) Get(input []string) error {
 }
 
 func (c *Controller) get(cmd *Command) error {
-	if c.currentItem != nil {
-		return errors.New("CLIENT_ERROR " + "Close current item first")
+	if c.currentValue != nil {
+		return &Error{"CLIENT_ERROR", "Close current item first"}
 	}
 
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
-	item, _ := q.Dequeue()
-	if len(item.Value) > 0 {
-		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(item.Value))
-		fmt.Fprintf(c.rw.Writer, "%s\r\n", item.Value)
+	value, _ := q.GetNext()
+	if len(value) > 0 {
+		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(value))
+		fmt.Fprintf(c.rw.Writer, "%s\r\n", value)
 	}
-	if strings.Contains(cmd.SubCommand, "open") && len(item.Value) > 0 {
-		c.setCurrentState(cmd, item)
-		q.AddOpenTransactions(1)
+	if strings.Contains(cmd.SubCommand, "open") && len(value) > 0 {
+		c.setCurrentState(cmd, value)
+		q.Stats().UpdateOpenReads(1)
 	}
 	atomic.AddUint64(&c.repo.Stats.CmdGet, 1)
 	return nil
 }
 
 func (c *Controller) getClose(cmd *Command) error {
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
-	if c.currentItem != nil {
-		q.AddOpenTransactions(-1)
+	if c.currentValue != nil {
+		q.Stats().UpdateOpenReads(-1)
 		c.setCurrentState(nil, nil)
 	}
 
@@ -84,18 +83,18 @@ func (c *Controller) getClose(cmd *Command) error {
 }
 
 func (c *Controller) abort(cmd *Command) error {
-	if c.currentItem != nil {
-		q, err := c.repo.GetQueue(cmd.QueueName)
+	if c.currentValue != nil {
+		q, err := c.getConsumer(cmd)
 		if err != nil {
-			log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
-			return errors.New("SERVER_ERROR " + err.Error())
+			log.Println(cmd, err)
+			return NewError("ERROR", err)
 		}
-		err = q.Prepend(c.currentItem)
+		err = q.PutBack(c.currentValue)
 		if err != nil {
-			return errors.New("SERVER_ERROR " + err.Error())
+			return NewError("ERROR", err)
 		}
-		if c.currentItem != nil {
-			q.AddOpenTransactions(-1)
+		if c.currentValue != nil {
+			q.Stats().UpdateOpenReads(-1)
 			c.setCurrentState(nil, nil)
 		}
 	}
@@ -103,15 +102,15 @@ func (c *Controller) abort(cmd *Command) error {
 }
 
 func (c *Controller) peek(cmd *Command) error {
-	q, err := c.repo.GetQueue(cmd.QueueName)
+	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't GetQueue %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
-	item, _ := q.Peek()
-	if len(item.Value) > 0 {
-		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(item.Value))
-		fmt.Fprintf(c.rw.Writer, "%s\r\n", item.Value)
+	value, _ := q.Peek()
+	if len(value) > 0 {
+		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(value))
+		fmt.Fprintf(c.rw.Writer, "%s\r\n", value)
 	}
 	atomic.AddUint64(&c.repo.Stats.CmdGet, 1)
 	return nil
@@ -122,10 +121,16 @@ func parseGetCommand(input []string) *Command {
 	if strings.Contains(input[1], "t=") {
 		input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
 	}
+	tokens := make([]string, 3)
 	if strings.Contains(input[1], "/") {
-		tokens := strings.SplitN(input[1], "/", 2)
+		tokens = strings.SplitN(input[1], "/", 2)
 		cmd.QueueName = tokens[0]
 		cmd.SubCommand = strings.Trim(tokens[1], "/")
+	}
+	if strings.Contains(cmd.QueueName, ":") {
+		tokens = strings.SplitN(cmd.QueueName, ":", 3)
+		cmd.QueueName = tokens[0]
+		cmd.ConsumerGroup = tokens[1]
 	}
 	return cmd
 }
