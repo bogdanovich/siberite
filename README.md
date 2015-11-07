@@ -26,10 +26,27 @@ It uses an order of magnitude less memory compared to Kestrel, but has less conf
 Siberite is used at [Spyonweb.com](http://spyonweb.com).<br>
 We used to use Darner before, but got 2 large production queues corrupted at some point and decided to rewrite it in Go.
 
+## Features
+
+Multiple consumer groups per queue using `get <queue>:<cursor>` syntax.
+
+1. When you read an item in a usual way: `get <queue>`, an item gets expired and deleted.
+2. When you read an item using cursor `get <queue>:<cursor>`, a durable cursor gets initialized.
+   With every read it shifts forward without deleting any messages in the source queue.
+   So the source queue remains untouched. Number of cursors per queue is not limited.
+3. If you continue reads from the source queue directly, siberite will continue
+   deleting messages from the head of that queue. Any existing cursor that is
+   internally points to already deleted message will catch up during next read
+   and will start serving messages from the current source queue head.
+4. Durable cursors also support two-phase reliable reads. All failed reliable
+   reads for each cursor are stored in their own small persistent queues and get
+   served first.
+
 
 ##Benchmarks
 
 [Siberite performance benchmarks](docs/benchmarks.md)
+
 
 ## Build
 
@@ -109,7 +126,6 @@ END
 
 ## TODO
 
-  - Add multiple consumer groups `get queue_name:consumer_group/open`
   - Add fanout queues support
 
 

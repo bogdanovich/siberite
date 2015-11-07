@@ -57,6 +57,6 @@ func (q *CGQueue) initialize() error {
 		return err
 	}
 
-	q.CGManager, err = NewCGManager(q.dataDir+"/consumers", q.Queue)
+	q.CGManager, err = NewCGManager(q.dataDir+"/_.metadata", q.Queue)
 	return err
 }
