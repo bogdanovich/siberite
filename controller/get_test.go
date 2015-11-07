@@ -114,7 +114,7 @@ func Test_Controller_GetOpen(t *testing.T) {
 		// get test = error
 		command = []string{"get", queueName}
 		err = controller.Get(command)
-		assert.Equal(t, "CLIENT_ERROR Close current item first", err.Error())
+		assert.EqualError(t, err, "CLIENT_ERROR Close current item first")
 
 		mockTCPConn.WriteBuffer.Reset()
 
@@ -135,7 +135,7 @@ func Test_Controller_GetOpen(t *testing.T) {
 		// get queueName/open = error
 		command = []string{"get", queueName + "/open"}
 		err = controller.Get(command)
-		assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
+		assert.EqualError(t, err, "CLIENT_ERROR Close current item first")
 
 		mockTCPConn.WriteBuffer.Reset()
 
@@ -234,7 +234,7 @@ func Test_Controller_GetCloseOpen(t *testing.T) {
 		// get queueName = error
 		command = []string{"get", queueName}
 		err = controller.Get(command)
-		assert.Equal(t, err.Error(), "CLIENT_ERROR Close current item first")
+		assert.EqualError(t, err, "CLIENT_ERROR Close current item first")
 
 		mockTCPConn.WriteBuffer.Reset()
 

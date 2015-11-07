@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -35,7 +34,7 @@ func (c *Controller) Get(input []string) error {
 	case "peek":
 		err = c.peek(cmd)
 	default:
-		err = errors.New("ERROR " + "Invalid command")
+		err = &Error{"ERROR", "Invalid command"}
 	}
 
 	if err != nil {
@@ -48,13 +47,13 @@ func (c *Controller) Get(input []string) error {
 
 func (c *Controller) get(cmd *Command) error {
 	if c.currentValue != nil {
-		return errors.New("CLIENT_ERROR " + "Close current item first")
+		return &Error{"CLIENT_ERROR", "Close current item first"}
 	}
 
 	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
 	value, _ := q.GetNext()
 	if len(value) > 0 {
@@ -72,8 +71,8 @@ func (c *Controller) get(cmd *Command) error {
 func (c *Controller) getClose(cmd *Command) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
 	if c.currentValue != nil {
 		q.Stats().UpdateOpenReads(-1)
@@ -87,12 +86,12 @@ func (c *Controller) abort(cmd *Command) error {
 	if c.currentValue != nil {
 		q, err := c.getConsumer(cmd)
 		if err != nil {
-			log.Printf("Can't get consumer %s: %s", cmd, err.Error())
-			return errors.New("SERVER_ERROR " + err.Error())
+			log.Println(cmd, err)
+			return NewError("ERROR", err)
 		}
 		err = q.PutBack(c.currentValue)
 		if err != nil {
-			return errors.New("SERVER_ERROR " + err.Error())
+			return NewError("ERROR", err)
 		}
 		if c.currentValue != nil {
 			q.Stats().UpdateOpenReads(-1)
@@ -105,8 +104,8 @@ func (c *Controller) abort(cmd *Command) error {
 func (c *Controller) peek(cmd *Command) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Println(cmd, err)
+		return NewError("ERROR", err)
 	}
 	value, _ := q.Peek()
 	if len(value) > 0 {

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -103,7 +104,7 @@ func Test_Controller_UnknownCommand(t *testing.T) {
 	defer cleanupControllerTest(repo)
 
 	err = controller.UnknownCommand()
-	assert.Equal(t, "ERROR Unknown command", err.Error())
+	assert.EqualError(t, err, "ERROR Unknown command")
 	assert.Equal(t, "ERROR Unknown command\r\n", mockTCPConn.WriteBuffer.String())
 
 }
@@ -112,8 +113,8 @@ func Test_Controller_SendError(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 0)
 	defer cleanupControllerTest(repo)
 
-	controller.SendError("Test error message")
-	assert.Equal(t, "Test error message\r\n", mockTCPConn.WriteBuffer.String())
+	controller.SendError(errors.New("Test error message"))
+	assert.Equal(t, "ERROR Test error message\r\n", mockTCPConn.WriteBuffer.String())
 }
 
 func Test_Controller_parseCommand(t *testing.T) {

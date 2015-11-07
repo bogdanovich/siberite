@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -15,14 +14,13 @@ func (c *Controller) Flush(input []string) error {
 
 	q, err := c.getConsumer(cmd)
 	if err != nil {
-		log.Printf("Can't get consumer %s: %s", cmd, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Printf(err.Error())
+		return NewError("ERROR", err)
 	}
 
 	err = q.Flush()
 	if err != nil {
-		log.Printf("Flush error %s: %s", cmd, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		return NewError("ERROR", err)
 	}
 
 	fmt.Fprint(c.rw.Writer, "END\r\n")

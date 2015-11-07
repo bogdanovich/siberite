@@ -160,7 +160,8 @@ func (repo *QueueRepository) Count() int {
 func (repo *QueueRepository) initialize() error {
 	dirs, err := ioutil.ReadDir(repo.DataPath)
 	if err != nil {
-		return fmt.Errorf("error opening data directory (%s): %s", repo.DataPath, err.Error())
+		return fmt.Errorf("error opening data directory (%s): %s",
+			repo.DataPath, err.Error())
 	}
 	for _, dir := range dirs {
 		if dir.IsDir() {
@@ -169,7 +170,8 @@ func (repo *QueueRepository) initialize() error {
 			if err != nil {
 				log.Fatalf("queue %s...%s", dir.Name(), err.Error())
 			}
-			log.Printf("queue \"%s\": size %d, head %d, tail %d", dir.Name(), q.Length(), q.Head(), q.Tail())
+			log.Printf("queue \"%s\": size %d, head %d, tail %d",
+				dir.Name(), q.Length(), q.Head(), q.Tail())
 		}
 	}
 	return nil

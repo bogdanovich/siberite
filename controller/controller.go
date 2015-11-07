@@ -2,7 +2,6 @@ package controller
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -61,14 +60,20 @@ func (c *Controller) ReadFirstMessage() (string, error) {
 
 // UnknownCommand reports an error
 func (c *Controller) UnknownCommand() error {
-	errorMessage := "ERROR Unknown command"
-	c.SendError(errorMessage)
-	return errors.New(errorMessage)
+	err := &Error{"ERROR", "Unknown command"}
+	c.SendError(err)
+	return err
 }
 
 //SendError sends an error message to the client
-func (c *Controller) SendError(errorMessage string) {
-	fmt.Fprintf(c.rw.Writer, "%s\r\n", errorMessage)
+func (c *Controller) SendError(err error) {
+
+	if e, ok := err.(*Error); ok {
+		fmt.Fprintf(c.rw.Writer, "%s\r\n", e.Error())
+	} else {
+		fmt.Fprintf(c.rw.Writer, "ERROR %s\r\n", err.Error())
+	}
+
 	c.rw.Writer.Flush()
 }
 

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -17,7 +16,7 @@ func (c *Controller) Delete(input []string) error {
 	if cmd.ConsumerGroup != "" {
 		q, err := c.repo.GetQueue(cmd.QueueName)
 		if err != nil {
-			return err
+			return NewError("ERROR", err)
 		}
 
 		err = q.DeleteConsumerGroup(cmd.ConsumerGroup)
@@ -26,8 +25,8 @@ func (c *Controller) Delete(input []string) error {
 	}
 
 	if err != nil {
-		log.Printf("Can't delete %s: %s", cmd.QueueName, err.Error())
-		return errors.New("SERVER_ERROR " + err.Error())
+		log.Printf("Command %s: %s ", cmd, err.Error())
+		return NewError("ERROR", err)
 	}
 	fmt.Fprint(c.rw.Writer, "END\r\n")
 	c.rw.Writer.Flush()
