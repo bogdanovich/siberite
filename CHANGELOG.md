@@ -1,3 +1,8 @@
+## 0.5.1
+
+- Fanout queues support.<br>
+  `set <queue>+<another_queue>+<third_queue> ...` adds an item to multiple queues.
+
 ## 0.5
 
 - Add durable cursors. An ability to consume queue multiple times
