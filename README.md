@@ -28,19 +28,24 @@ We used to use Darner before, but got 2 large production queues corrupted at som
 
 ## Features
 
-Multiple consumer groups per queue using `get <queue>:<cursor>` syntax.
+1. Multiple consumer groups per queue using `get <queue>:<cursor>` syntax.
 
-1. When you read an item in a usual way: `get <queue>`, an item gets expired and deleted.
-2. When you read an item using cursor `get <queue>:<cursor>`, a durable cursor gets initialized.
-   With every read it shifts forward without deleting any messages in the source queue.
-   So the source queue remains untouched. Number of cursors per queue is not limited.
-3. If you continue reads from the source queue directly, siberite will continue
-   deleting messages from the head of that queue. Any existing cursor that is
-   internally points to already deleted message will catch up during next read
-   and will start serving messages from the current source queue head.
-4. Durable cursors also support two-phase reliable reads. All failed reliable
-   reads for each cursor are stored in their own small persistent queues and get
-   served first.
+  - When you read an item in a usual way: `get <queue>`, item gets expired and deleted.
+  - When you read an item using cursor syntax `get <queue>:<cursor>`, a durable
+    cursor gets initialized. It shifts forward with every read without deleting
+    any messages in the source queue. Number of cursors per queue is not limited.
+  - If you continue reads from the source queue directly, siberite will continue
+    deleting messages from the head of that queue. Any existing cursor that is
+    internally points to an already deleted message will catch up during next read
+    and will start serving messages from the current source queue head.
+  - Durable cursors are also support two-phase reliable reads. All failed reliable
+    reads for each cursor are stored in cursor's own small persistent queue.
+
+2. Fanout queues
+
+  - Siberite allows you to insert new message into multiple queues at once
+    by using the following syntax `set <queue>+<another_queue>+<third_queue> ...`
+
 
 
 ##Benchmarks
@@ -123,10 +128,6 @@ END
 # delete work
 # flush_all
 ```
-
-## TODO
-
-  - Add fanout queues support
 
 
 ## Not supported

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func Test_Controller_Set(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0123567890\r\n")
 
 	err = controller.Set(command)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
@@ -41,4 +42,30 @@ func Test_Controller_Set(t *testing.T) {
 
 	err = controller.Set(command)
 	assert.Equal(t, "CLIENT_ERROR bad data chunk", err.Error())
+}
+
+func Test_Controller_SetFanout(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
+
+	queueNames := []string{"test", "fanout_test", "1", "2"}
+
+	command := []string{"set", strings.Join(queueNames, "+"), "0", "0", "10"}
+	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0123456789\r\n")
+
+	err = controller.Set(command)
+	assert.NoError(t, err)
+	assert.Equal(t, "STORED\r\n", mockTCPConn.WriteBuffer.String())
+
+	for _, queueName := range queueNames {
+		q, err := repo.GetQueue(queueName)
+		assert.NoError(t, err)
+
+		assert.EqualValues(t, 1, q.Length())
+
+		value, err := q.GetNext()
+		assert.NoError(t, err)
+		assert.Equal(t, "0123456789", string(value))
+		assert.True(t, q.IsEmpty())
+	}
 }

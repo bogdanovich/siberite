@@ -34,6 +34,7 @@ type Command struct {
 	QueueName     string
 	SubCommand    string
 	ConsumerGroup string
+	FanoutQueues  []string
 	DataSize      int
 }
 
