@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Siberite by bogdanovich</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Siberite</h1>
+        <p>Siberite is a simple, lightweight, leveldb backed message queue written in Go.</p>
+
+        <p class="view"><a href="https://github.com/bogdanovich/siberite">View the Project on GitHub <small>bogdanovich/siberite</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/bogdanovich/siberite/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/bogdanovich/siberite/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/bogdanovich/siberite">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="siberite" class="anchor" href="#siberite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Siberite</h1>
+
+<p><a href="https://travis-ci.org/bogdanovich/siberite"><img src="https://travis-ci.org/bogdanovich/siberite.svg?branch=master" alt="Build Status"></a>
+<a href="https://gitter.im/bogdanovich/siberite?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="Gitter"></a>
+<a href="https://gowalker.org/github.com/bogdanovich/siberite"><img src="http://gowalker.org/api/v1/badge" alt="Go Walker"></a></p>
+
+<p>Siberite is a simple leveldb backed message queue server<br>
+(<a href="https://github.com/twitter/kestrel">twitter/kestrel</a>, <a href="https://github.com/wavii/darner">wavii/darner</a> rewritten in Go).</p>
+
+<p>Siberite is a very simple message queue server.  Unlike in-memory servers such as <a href="http://redis.io/">redis</a>, Siberite is
+designed to handle queues much larger than what can be held in RAM.  And unlike enterprise queue servers such as
+<a href="http://www.rabbitmq.com/">RabbitMQ</a>, Siberite keeps all messages <strong>out of process</strong>,
+using <a href="https://github.com/syndtr/goleveldb">goleveldb</a> as a persistent storage.</p>
+
+<p>The result is a durable queue server that uses a small amount of in-resident memory regardless of queue size.</p>
+
+<p>Siberite is based on Robey Pointer's <a href="https://github.com/robey/kestrel">Kestrel</a> - simple, distributed message queue.
+Like Kestrel, Siberite follows the "No talking! Shhh!" approach to distributed queues:
+A single Siberite server has a set of queues identified by name.  Each queue is a strictly-ordered FIFO,
+and querying from a fleet of Siberite servers provides a loosely-ordered queue.
+Siberite also supports Kestrel's two-phase reliable fetch: if a client disconnects before confirming it handled
+a message, the message will be handed to the next client.</p>
+
+<p>Compared to Kestrel and Darner, Siberite is easier to build, maintain and distribute.
+It uses an order of magnitude less memory compared to Kestrel, but has less configuration far fewer features.</p>
+
+<p>Siberite is used at <a href="http://spyonweb.com">Spyonweb.com</a>.<br>
+We used to use Darner before, but got 2 large production queues corrupted at some point and decided to rewrite it in Go.</p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ol>
+<li>
+<p>Multiple consumer groups per queue using <code>get &lt;queue&gt;:&lt;cursor&gt;</code> syntax.</p>
+
+<ul>
+<li>When you read an item in a usual way: <code>get &lt;queue&gt;</code>, item gets expired and deleted.</li>
+<li>When you read an item using cursor syntax <code>get &lt;queue&gt;:&lt;cursor&gt;</code>, a durable
+cursor gets initialized. It shifts forward with every read without deleting
+any messages in the source queue. Number of cursors per queue is not limited.</li>
+<li>If you continue reads from the source queue directly, siberite will continue
+deleting messages from the head of that queue. Any existing cursor that is
+internally points to an already deleted message will catch up during next read
+and will start serving messages from the current source queue head.</li>
+<li>Durable cursors are also support two-phase reliable reads. All failed reliable
+reads for each cursor are stored in cursor's own small persistent queue.</li>
+</ul>
+</li>
+<li>
+<p>Fanout queues</p>
+
+<ul>
+<li>Siberite allows you to insert new message into multiple queues at once
+by using the following syntax <code>set &lt;queue&gt;+&lt;another_queue&gt;+&lt;third_queue&gt; ...</code>
+</li>
+</ul>
+</li>
+</ol>
+
+<h2>
+<a id="benchmarks" class="anchor" href="#benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benchmarks</h2>
+
+<p><a href="docs/benchmarks.md">Siberite performance benchmarks</a></p>
+
+<h2>
+<a id="build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h2>
+
+<p>Make sure your <code>GOPATH</code> is correct</p>
+
+<pre><code>go get github.com/bogdanovich/siberite
+cd $GOPATH/src/github.com/bogdanovich/siberite
+go get ./...
+cd siberite
+go build siberite.go
+mkdir ./data
+./siberite -listen localhost:22133 -data ./data
+2015/09/22 06:29:38 listening on 127.0.0.1:22133
+2015/09/22 06:29:38 initializing...
+2015/09/22 06:29:38 data directory:  ./data
+</code></pre>
+
+<p>or download <a href="https://github.com/bogdanovich/siberite/releases">darwin-x86_64 or linux-x86_64 builds</a></p>
+
+<h2>
+<a id="protocol" class="anchor" href="#protocol" aria-hidden="true"><span class="octicon octicon-link"></span></a>Protocol</h2>
+
+<p>Siberite follows the same protocol as <a href="http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache">Kestrel</a>,
+which is the memcache TCP text protocol.</p>
+
+<p><a href="docs/clients.md">List of compatible clients</a></p>
+
+<h2>
+<a id="telnet-example" class="anchor" href="#telnet-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Telnet example</h2>
+
+<pre><code>telnet localhost 22133
+Connected to localhost.
+Escape character is '^]'.
+
+set work 0 0 10
+1234567890
+STORED
+
+set work 0 0 2
+12
+STORED
+
+get work
+VALUE work 0 10
+1234567890
+END
+
+get work/open
+VALUE work 0 2
+12
+END
+
+get work/close
+END
+
+stats
+STAT uptime 47
+STAT time 1443308758
+STAT version siberite-0.4.1
+STAT curr_connections 1
+STAT total_connections 1
+STAT cmd_get 2
+STAT cmd_set 2
+STAT queue_work_items 0
+STAT queue_work_open_transactions 0
+END
+
+# other commands:
+# get work/peek
+# get work/open
+# get work/close/open
+# get work/abort
+# flush work
+# delete work
+# flush_all
+</code></pre>
+
+<h2>
+<a id="not-supported" class="anchor" href="#not-supported" aria-hidden="true"><span class="octicon octicon-link"></span></a>Not supported</h2>
+
+<ul>
+<li>Waiting a given time limit for a new item to arrive /t= (allowed by protocol but does nothing)</li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/bogdanovich">bogdanovich</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-69855897-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
