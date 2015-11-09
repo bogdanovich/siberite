@@ -30,7 +30,7 @@ func (c *Controller) Get(input []string) error {
 			err = c.get(cmd)
 		}
 	case "abort":
-		err = c.abort(cmd)
+		err = c.abort()
 	case "peek":
 		err = c.peek(cmd)
 	default:
@@ -82,11 +82,11 @@ func (c *Controller) getClose(cmd *Command) error {
 	return nil
 }
 
-func (c *Controller) abort(cmd *Command) error {
+func (c *Controller) abort() error {
 	if c.currentValue != nil {
-		q, err := c.getConsumer(cmd)
+		q, err := c.getConsumer(c.currentCommand)
 		if err != nil {
-			log.Println(cmd, err)
+			log.Println(c.currentCommand, err)
 			return NewError("ERROR", err)
 		}
 		err = q.PutBack(c.currentValue)

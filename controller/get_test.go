@@ -322,7 +322,7 @@ func Test_Controller_Gets(t *testing.T) {
 // Read one more item from consumer goup (returns nothing)
 // Add one item to the original queue
 // Read an item from consumer group (returns previously added value)
-func Test_Controller_Get_ConsumerGroup(t *testing.T) {
+func Test_Controller_ConsumerGroup_Get(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 3)
 	defer cleanupControllerTest(repo)
 
@@ -370,4 +370,44 @@ func Test_Controller_Get_ConsumerGroup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n3\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
+}
+
+// Initialize original queue with 3 items
+// Open reliable read using consumer group
+// Abort the reliable read using
+// 1) <queue>/abort
+// 2) <queue>:<cursor>/abort syntax
+// Make sure same item gets served again
+func Test_Controller_ConsumerGroup_GetAbort(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 3)
+	defer cleanupControllerTest(repo)
+
+	abortCommands := []string{"test/abort", "test:cgroup/abort"}
+
+	for _, abortCommand := range abortCommands {
+
+		command := []string{"get", "test:cgroup/open"}
+		err = controller.Get(command)
+		assert.NoError(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n",
+			mockTCPConn.WriteBuffer.String())
+
+		mockTCPConn.WriteBuffer.Reset()
+
+		command = []string{"get", abortCommand}
+		err = controller.Get(command)
+		assert.NoError(t, err)
+		assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
+
+		mockTCPConn.WriteBuffer.Reset()
+
+		command = []string{"get", "test:cgroup/peek"}
+		err = controller.Get(command)
+		assert.NoError(t, err)
+		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n",
+			mockTCPConn.WriteBuffer.String())
+
+		mockTCPConn.WriteBuffer.Reset()
+
+	}
 }
