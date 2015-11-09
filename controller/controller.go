@@ -49,7 +49,7 @@ func NewSession(conn Conn, repo *repository.QueueRepository) *Controller {
 // FinishSession aborts unfinished transaction
 func (c *Controller) FinishSession() {
 	if c.currentValue != nil {
-		c.abort(c.currentCommand)
+		c.abort()
 	}
 	atomic.AddUint64(&c.repo.Stats.CurrentConnections, ^uint64(0))
 }
