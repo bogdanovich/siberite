@@ -21,21 +21,19 @@ Siberite also supports Kestrel's two-phase reliable fetch: if a client disconnec
 a message, the message will be handed to the next client.
 
 Compared to Kestrel and Darner, Siberite is easier to build, maintain and distribute.
-It uses an order of magnitude less memory compared to Kestrel, but has less configuration far fewer features.
-
-Siberite is used at [Spyonweb.com](http://spyonweb.com).<br>
-We used to use Darner before, but got 2 large production queues corrupted at some point and decided to rewrite it in Go.
+It uses an order of magnitude less memory compared to Kestrel, and has an ability
+to consume queue multiple times (using durable cursors feature).
 
 ## Features
 
-1. Multiple consumer groups per queue using `get <queue>:<cursor>` syntax.
+1. Multiple durable cursors per queue using `get <queue>:<cursor_name>` syntax.
 
   - When you read an item in a usual way: `get <queue>`, item gets expired and deleted.
-  - When you read an item using cursor syntax `get <queue>:<cursor>`, a durable
+  - When you read an item using cursor syntax `get <queue>:<cursor_name>`, a durable
     cursor gets initialized. It shifts forward with every read without deleting
     any messages in the source queue. Number of cursors per queue is not limited.
   - If you continue reads from the source queue directly, siberite will continue
-    deleting messages from the head of that queue. Any existing cursor that is
+    to delete messages from the head of the queue. Any existing cursor that
     internally points to an already deleted message will catch up during next read
     and will start serving messages from the current source queue head.
   - Durable cursors are also support two-phase reliable reads. All failed reliable
@@ -124,6 +122,10 @@ END
 # get work/open
 # get work/close/open
 # get work/abort
+# get work:cursor_name
+# get work:cursor_name/open
+# get work:my_cursor/close/open
+# set work+fanout_queue
 # flush work
 # delete work
 # flush_all
