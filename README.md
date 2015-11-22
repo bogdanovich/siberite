@@ -1,6 +1,5 @@
 # Siberite
-[![Build Status](https://travis-ci.org/bogdanovich/siberite.svg?branch=master)](https://travis-ci.org/bogdanovich/siberite)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bogdanovich/siberite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![License][License-Image]][License-Url] [![Build][Build-Status-Image]][Build-Status-Url] [![Release][Release-Image]][Release-Url]
 [![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/bogdanovich/siberite)
 
 Siberite is a simple leveldb backed message queue server<br>
@@ -135,3 +134,10 @@ END
 ## Not supported
 
   - Waiting a given time limit for a new item to arrive /t=<milliseconds> (allowed by protocol but does nothing)
+
+[License-Url]: http://opensource.org/licenses/Apache-2.0
+[License-Image]: https://img.shields.io/hexpm/l/plug.svg
+[Build-Status-Url]: https://travis-ci.org/bogdanovich/siberite
+[Build-Status-Image]: https://travis-ci.org/bogdanovich/siberite.svg?branch=master
+[Release-Url]: https://github.com/bogdanovich/siberite/releases/latest
+[Release-image]: https://img.shields.io/badge/release-v0.5.1-blue.svg
