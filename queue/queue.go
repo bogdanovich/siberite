@@ -12,7 +12,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var alphaNumericRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+var alphaNumericRegexp = regexp.MustCompile(`[^a-zA-Z0-9_\-]+`)
 
 // Consumer represents a queue consumer
 type Consumer interface {
