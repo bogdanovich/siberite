@@ -31,7 +31,7 @@ func New(dataDir string) *Service {
 }
 
 // Serve starts the service
-func (s *Service) Serve(listener *net.TCPListener) {
+func (s *Service) Serve(laddr *net.TCPAddr) {
 	defer s.wg.Done()
 
 	log.Println("initializing...")
@@ -41,6 +41,12 @@ func (s *Service) Serve(listener *net.TCPListener) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	listener, err := net.ListenTCP("tcp", laddr)
+	if nil != err {
+		log.Fatalln(err)
+	}
+	log.Println("listening on", listener.Addr())
 
 	for {
 		select {

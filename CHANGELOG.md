@@ -1,3 +1,6 @@
+## 0.5.2
+- Accept connections only after queues are fully initialized
+
 ## 0.5.1
 
 - Fanout queues support.<br>

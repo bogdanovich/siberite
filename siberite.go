@@ -34,13 +34,8 @@ func main() {
 	if nil != err {
 		log.Fatalln(err)
 	}
-	listener, err := net.ListenTCP("tcp", laddr)
-	if nil != err {
-		log.Fatalln(err)
-	}
-	log.Println("listening on", listener.Addr())
 
-	go service.Serve(listener)
+	go service.Serve(laddr)
 
 	// Handle SIGINT and SIGTERM.
 	ch := make(chan os.Signal)

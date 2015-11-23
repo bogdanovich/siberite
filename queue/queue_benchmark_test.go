@@ -51,6 +51,17 @@ func Benchmark_Queue_Enqueue_10240_Bytes(b *testing.B) {
 	}
 }
 
+func Benchmark_Queue_Enqueue_102400_Bytes(b *testing.B) {
+	q, _ := Open(name, dir, &options)
+	defer q.Drop()
+	value := make([]byte, 102400)
+	rand.Read(value)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Enqueue(value)
+	}
+}
+
 func Benchmark_Queue_GetNext_1_Byte(b *testing.B) {
 	q, _ := Open(name, dir, &options)
 	defer q.Drop()
