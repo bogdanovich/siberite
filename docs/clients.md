@@ -7,7 +7,7 @@ between get requests.
 Here is a list of clients that would support reliable reads:
 
 ## Ruby
-- [kestrel-client](https://github.com/freels/kestrel-client)
+- [kestrel-client](https://github.com/twitter/kestrel-client)
 - [memcache-client](https://github.com/mperham/memcache-client)
 
 ## Go
