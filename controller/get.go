@@ -127,8 +127,8 @@ func parseGetCommand(input []string) *Command {
 		cmd.QueueName = tokens[0]
 		cmd.SubCommand = strings.Trim(tokens[1], "/")
 	}
-	if strings.Contains(cmd.QueueName, ":") {
-		tokens = strings.SplitN(cmd.QueueName, ":", 3)
+	if strings.Contains(cmd.QueueName, cgSeparator) {
+		tokens = strings.SplitN(cmd.QueueName, cgSeparator, 3)
 		cmd.QueueName = tokens[0]
 		cmd.ConsumerGroup = tokens[1]
 	}

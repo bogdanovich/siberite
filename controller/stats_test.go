@@ -34,10 +34,10 @@ func Test_Controller_Stats(t *testing.T) {
 		"STAT cmd_set 0\r\n" +
 		fmt.Sprintf("STAT queue_test_items %d\r\n", 3) +
 		"STAT queue_test_open_transactions 0\r\n" +
-		fmt.Sprintf("STAT queue_test:cg1_items %d\r\n", 2) +
-		"STAT queue_test:cg1_open_transactions 0\r\n" +
-		fmt.Sprintf("STAT queue_test:cg2_items %d\r\n", 1) +
-		"STAT queue_test:cg2_open_transactions 0\r\n" +
+		fmt.Sprintf("STAT queue_test.cg1_items %d\r\n", 2) +
+		"STAT queue_test.cg1_open_transactions 0\r\n" +
+		fmt.Sprintf("STAT queue_test.cg2_items %d\r\n", 1) +
+		"STAT queue_test.cg2_open_transactions 0\r\n" +
 		"END\r\n"
 	assert.Nil(t, err)
 	assert.Equal(t, statsResponse, mockTCPConn.WriteBuffer.String())
