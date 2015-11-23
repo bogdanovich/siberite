@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,14 +31,10 @@ func Test_StartGetVersionAndStop(t *testing.T) {
 	if nil != err {
 		log.Fatalln(err)
 	}
-	listener, err := net.ListenTCP("tcp", laddr)
-	if nil != err {
-		log.Fatalln(err)
-	}
-	log.Println("listening on", listener.Addr())
 
-	go s.Serve(listener)
+	go s.Serve(laddr)
 	defer s.Stop()
+	time.Sleep(1 * time.Second)
 
 	conn, err := net.Dial("tcp", hostAndPort)
 	assert.Nil(t, err)

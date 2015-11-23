@@ -58,7 +58,6 @@ Make sure your `GOPATH` is correct
 go get github.com/bogdanovich/siberite
 cd $GOPATH/src/github.com/bogdanovich/siberite
 go get ./...
-cd siberite
 go build siberite.go
 mkdir ./data
 ./siberite -listen localhost:22133 -data ./data
@@ -76,7 +75,7 @@ which is the memcache TCP text protocol.
 
 [List of compatible clients](docs/clients.md)
 
-## Telnet example
+## Telnet demo
 
 ```
 telnet localhost 22133
