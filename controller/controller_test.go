@@ -120,8 +120,8 @@ func Test_Controller_SendError(t *testing.T) {
 func Test_Controller_parseCommand(t *testing.T) {
 	testCases := map[string]Command{
 		"work":      Command{},
-		"work:cg":   Command{ConsumerGroup: "cg"},
-		"work:cg:1": Command{ConsumerGroup: "cg"},
+		"work.cg":   Command{ConsumerGroup: "cg"},
+		"work.cg.1": Command{ConsumerGroup: "cg"},
 	}
 
 	for input, command := range testCases {

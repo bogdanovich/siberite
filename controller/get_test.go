@@ -19,17 +19,17 @@ func Test_Controller_parseGetCommand(t *testing.T) {
 		"work/open/t=10":                  Command{SubCommand: "open"},
 		"work/close/open/t=10":            Command{SubCommand: "close/open"},
 		"work/close/t=10/open/abort":      Command{SubCommand: "close/open/abort"},
-		"work:cg":                         Command{ConsumerGroup: "cg"},
-		"work:consumer/open":              Command{SubCommand: "open", ConsumerGroup: "consumer"},
-		"work:1/close":                    Command{SubCommand: "close", ConsumerGroup: "1"},
-		"work:000/abort":                  Command{SubCommand: "abort", ConsumerGroup: "000"},
-		"work:1:2/peek":                   Command{SubCommand: "peek", ConsumerGroup: "1"},
-		"work:consumergroup/t=10":         Command{ConsumerGroup: "consumergroup"},
-		"work:test:cg/t=10/t=100/t=22":    Command{ConsumerGroup: "test"},
-		"work:1cg/t=10/open":              Command{SubCommand: "open", ConsumerGroup: "1cg"},
-		"work:c/open/t=10":                Command{SubCommand: "open", ConsumerGroup: "c"},
-		"work:0/close/open/t=10":          Command{SubCommand: "close/open", ConsumerGroup: "0"},
-		"work:group/close/t=1/open/abort": Command{SubCommand: "close/open/abort", ConsumerGroup: "group"},
+		"work.cg":                         Command{ConsumerGroup: "cg"},
+		"work.consumer/open":              Command{SubCommand: "open", ConsumerGroup: "consumer"},
+		"work.1/close":                    Command{SubCommand: "close", ConsumerGroup: "1"},
+		"work.000/abort":                  Command{SubCommand: "abort", ConsumerGroup: "000"},
+		"work.1:2/peek":                   Command{SubCommand: "peek", ConsumerGroup: "1:2"},
+		"work.consumergroup/t=10":         Command{ConsumerGroup: "consumergroup"},
+		"work.test.cg/t=10/t=100/t=22":    Command{ConsumerGroup: "test"},
+		"work.1cg/t=10/open":              Command{SubCommand: "open", ConsumerGroup: "1cg"},
+		"work.c/open/t=10":                Command{SubCommand: "open", ConsumerGroup: "c"},
+		"work.0/close/open/t=10":          Command{SubCommand: "close/open", ConsumerGroup: "0"},
+		"work.group/close/t=1/open/abort": Command{SubCommand: "close/open/abort", ConsumerGroup: "group"},
 	}
 
 	for input, command := range testCases {
@@ -45,7 +45,7 @@ func Test_Controller_Get(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 1)
 	defer cleanupControllerTest(repo)
 
-	queueNames := []string{"test:1", "test:cgroup", "test"}
+	queueNames := []string{"test.1", "test.cgroup", "test"}
 
 	for _, queueName := range queueNames {
 		// When queue has items
@@ -100,7 +100,7 @@ func Test_Controller_GetOpen(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 4)
 	defer cleanupControllerTest(repo)
 
-	queueNames := []string{"test:1", "test:cgroup", "test"}
+	queueNames := []string{"test.1", "test.cgroup", "test"}
 
 	for _, queueName := range queueNames {
 		// get queueName/open = value
@@ -183,7 +183,7 @@ func Test_Controller_GetOpen_Disconnect(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 2)
 	defer cleanupControllerTest(repo)
 
-	queueNames := []string{"test:1", "test:cgroup", "test"}
+	queueNames := []string{"test.1", "test.cgroup", "test"}
 
 	for _, queueName := range queueNames {
 		// get queueName/open = value
@@ -220,7 +220,7 @@ func Test_Controller_GetCloseOpen(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 4)
 	defer cleanupControllerTest(repo)
 
-	queueNames := []string{"test:1", "test:cgroup", "test"}
+	queueNames := []string{"test.1", "test.cgroup", "test"}
 
 	for _, queueName := range queueNames {
 		// get queueName/close/open = 1
@@ -285,7 +285,7 @@ func Test_Controller_Gets(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 2)
 	defer cleanupControllerTest(repo)
 
-	queueNames := []string{"test:1", "test:cgroup", "test"}
+	queueNames := []string{"test.1", "test.cgroup", "test"}
 
 	for _, queueName := range queueNames {
 		// gets test/open = 1
@@ -326,7 +326,7 @@ func Test_Controller_ConsumerGroup_Get(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 3)
 	defer cleanupControllerTest(repo)
 
-	command := []string{"get", "test:cgroup"}
+	command := []string{"get", "test.cgroup"}
 	err = controller.Get(command)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
@@ -347,14 +347,14 @@ func Test_Controller_ConsumerGroup_Get(t *testing.T) {
 
 	mockTCPConn.WriteBuffer.Reset()
 
-	command = []string{"get", "test:cgroup"}
+	command = []string{"get", "test.cgroup"}
 	err = controller.Get(command)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n2\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
 
 	mockTCPConn.WriteBuffer.Reset()
 
-	command = []string{"get", "test:cgroup"}
+	command = []string{"get", "test.cgroup"}
 	err = controller.Get(command)
 	assert.NoError(t, err)
 	assert.Equal(t, "END\r\n", mockTCPConn.WriteBuffer.String())
@@ -365,7 +365,7 @@ func Test_Controller_ConsumerGroup_Get(t *testing.T) {
 	assert.NoError(t, err)
 	q.Enqueue([]byte("3"))
 
-	command = []string{"get", "test:cgroup"}
+	command = []string{"get", "test.cgroup"}
 	err = controller.Get(command)
 	assert.NoError(t, err)
 	assert.Equal(t, "VALUE test 0 1\r\n3\r\nEND\r\n", mockTCPConn.WriteBuffer.String())
@@ -382,11 +382,11 @@ func Test_Controller_ConsumerGroup_GetAbort(t *testing.T) {
 	repo, controller, mockTCPConn := setupControllerTest(t, 3)
 	defer cleanupControllerTest(repo)
 
-	abortCommands := []string{"test/abort", "test:cgroup/abort"}
+	abortCommands := []string{"test/abort", "test.cgroup/abort"}
 
 	for _, abortCommand := range abortCommands {
 
-		command := []string{"get", "test:cgroup/open"}
+		command := []string{"get", "test.cgroup/open"}
 		err = controller.Get(command)
 		assert.NoError(t, err)
 		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n",
@@ -401,7 +401,7 @@ func Test_Controller_ConsumerGroup_GetAbort(t *testing.T) {
 
 		mockTCPConn.WriteBuffer.Reset()
 
-		command = []string{"get", "test:cgroup/peek"}
+		command = []string{"get", "test.cgroup/peek"}
 		err = controller.Get(command)
 		assert.NoError(t, err)
 		assert.Equal(t, "VALUE test 0 1\r\n0\r\nEND\r\n",

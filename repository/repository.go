@@ -13,7 +13,7 @@ import (
 )
 
 // Version represents siberite version
-const Version = "siberite-0.5.2"
+const Version = "siberite-0.6.0"
 
 // QueueRepository represents a repository of queues
 type QueueRepository struct {
@@ -145,8 +145,8 @@ func (repo *QueueRepository) FullStats() []StatItem {
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReads)})
 		for pair := range q.ConsumerGroupIterator() {
 			cg = pair.Val.(*cgroup.ConsumerGroup)
-			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
-			stats = append(stats, StatItem{"queue_" + q.Name + ":" + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReads)})
+			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
+			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReads)})
 		}
 	}
 	return stats

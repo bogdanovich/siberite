@@ -101,24 +101,28 @@ func Test_GetQueue(t *testing.T) {
 	defer repo.DeleteAllQueues()
 
 	_, err := repo.GetQueue("test1")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, repo.Count())
 
 	_, err = repo.GetQueue("test1")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, repo.Count())
 
 	_, err = repo.GetQueue("test2")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, repo.Count())
 
-	_, err = repo.GetQueue("test:test")
-	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
-	assert.Equal(t, 2, repo.Count())
+	_, err = repo.GetQueue("test2:test2")
+	assert.NoError(t, err)
+	assert.Equal(t, 3, repo.Count())
+
+	_, err = repo.GetQueue("test.test")
+	assert.EqualError(t, err, "queue: name is not alphanumeric")
+	assert.Equal(t, 3, repo.Count())
 
 	_, err = repo.GetQueue("testtest!@#$%^&*-=")
 	assert.Equal(t, "queue: name is not alphanumeric", err.Error())
-	assert.Equal(t, 2, repo.Count())
+	assert.Equal(t, 3, repo.Count())
 }
 
 func Test_Count(t *testing.T) {
