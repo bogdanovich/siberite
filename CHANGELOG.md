@@ -1,6 +1,6 @@
 ## 0.6.0
-- Change durable cursor separator from `:` to `.` for Kestrel compatibility.
-  Kestrel uses `:` for namespace separator.
+- Change durable cursor separator from `:` to `.` for Kestrel compatibility.<br>
+  Kestrel uses `:` as a namespace separator.
 - Allow `:` character in queue name
 
 ## 0.5.2
