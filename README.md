@@ -139,4 +139,4 @@ END
 [Build-Status-Url]: https://travis-ci.org/bogdanovich/siberite
 [Build-Status-Image]: https://travis-ci.org/bogdanovich/siberite.svg?branch=master
 [Release-Url]: https://github.com/bogdanovich/siberite/releases/latest
-[Release-image]: https://img.shields.io/badge/release-v0.5.1-blue.svg
+[Release-image]: https://img.shields.io/badge/release-v0.6-blue.svg
