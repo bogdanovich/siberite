@@ -25,10 +25,10 @@ to consume queue multiple times (using durable cursors feature).
 
 ## Features
 
-1. Multiple durable cursors per queue using `get <queue>:<cursor_name>` syntax.
+1. Multiple durable cursors per queue using `get <queue>.<cursor_name>` syntax.
 
   - When you read an item in a usual way: `get <queue>`, item gets expired and deleted.
-  - When you read an item using cursor syntax `get <queue>:<cursor_name>`, a durable
+  - When you read an item using cursor syntax `get <queue>.<cursor_name>`, a durable
     cursor gets initialized. It shifts forward with every read without deleting
     any messages in the source queue. Number of cursors per queue is not limited.
   - If you continue reads from the source queue directly, siberite will continue
@@ -120,9 +120,9 @@ END
 # get work/open
 # get work/close/open
 # get work/abort
-# get work:cursor_name
-# get work:cursor_name/open
-# get work:my_cursor/close/open
+# get work.cursor_name
+# get work.cursor_name/open
+# get work.my_cursor/close/open
 # set work+fanout_queue
 # flush work
 # delete work
