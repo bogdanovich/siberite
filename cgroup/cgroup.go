@@ -22,6 +22,9 @@ var (
 	alphaNumericRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
 )
 
+// ErrInvalidName is returned when consumer group name is not alphanumeric
+var ErrInvalidName = errors.New("cgroup: name is not alphanumeric")
+
 // ConsumerGroup represents a consumer group that reads from a
 // source queue, stores its own cursor position and saves failed
 // reliable reads in order to serve them to other consumers later
@@ -151,7 +154,7 @@ func (cg *ConsumerGroup) Delete() error {
 
 func (cg *ConsumerGroup) initialize() error {
 	if alphaNumericRegexp.MatchString(cg.Name) {
-		return errors.New("cgroup: name is not alphanumeric")
+		return ErrInvalidName
 	}
 
 	err := cg.loadCursor()

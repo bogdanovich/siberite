@@ -25,7 +25,7 @@ func Test_Controller_Set(t *testing.T) {
 	fmt.Fprintf(&mockTCPConn.ReadBuffer, "0\r\n")
 
 	err = controller.Set(command)
-	assert.EqualError(t, err, "CLIENT_ERROR Invalid input")
+	assert.EqualError(t, err, "CLIENT_ERROR Invalid command")
 
 	mockTCPConn.WriteBuffer.Reset()
 
