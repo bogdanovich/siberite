@@ -86,7 +86,7 @@ func (s *Service) handleConnection(conn *net.TCPConn) {
 	for {
 		select {
 		case <-s.ch:
-			log.Println("Disconnecting", conn.RemoteAddr())
+			log.Println("disconnecting", conn.RemoteAddr())
 			return
 		default:
 		}

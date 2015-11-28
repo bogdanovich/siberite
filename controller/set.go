@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,26 +16,26 @@ import (
 func (c *Controller) Set(input []string) error {
 	cmd, err := parseSetCommand(input)
 	if err != nil {
-		return NewError("CLIENT_ERROR", err)
+		return err
 	}
 
 	dataBlock, err := c.readDataBlock(cmd.DataSize)
 	if err != nil {
-		return NewError("CLIENT_ERROR", err)
+		return err
 	}
 
 	if cmd.FanoutQueues == nil {
 		err = c.storeDataBlock(cmd.QueueName, dataBlock)
 		if err != nil {
 			log.Println(cmd, err)
-			return NewError("ERROR", err)
+			return err
 		}
 	} else {
 		for _, queueName := range cmd.FanoutQueues {
 			err = c.storeDataBlock(queueName, dataBlock)
 			if err != nil {
 				log.Println(cmd, err)
-				return NewError("ERROR", err)
+				return err
 			}
 		}
 	}
@@ -48,18 +47,24 @@ func (c *Controller) Set(input []string) error {
 }
 
 func (c *Controller) readDataBlock(totalBytes int) ([]byte, error) {
-	expectedBytes := totalBytes + 2
-	dataBlock := make([]byte, expectedBytes)
-	_, err := io.ReadFull(c.rw.Reader, dataBlock)
+	// makes new buffer for larger data block
+	// or use the same one
+	if cap(c.dataBuffer) < totalBytes+2 {
+		c.dataBuffer = make([]byte, totalBytes+2)
+	} else {
+		c.dataBuffer = c.dataBuffer[:totalBytes+2]
+	}
+
+	_, err := io.ReadFull(c.rw.Reader, c.dataBuffer)
 	if err != nil {
 		return nil, err
 	}
 
-	if string(dataBlock[totalBytes:]) != "\r\n" {
-		return nil, errors.New("bad data chunk")
+	if string(c.dataBuffer[totalBytes:]) != "\r\n" {
+		return nil, ErrBadDataChunk
 	}
 
-	return dataBlock[:totalBytes], nil
+	return c.dataBuffer[:totalBytes], nil
 }
 
 func (c *Controller) storeDataBlock(queueName string, dataBlock []byte) error {
@@ -72,12 +77,12 @@ func (c *Controller) storeDataBlock(queueName string, dataBlock []byte) error {
 
 func parseSetCommand(input []string) (*Command, error) {
 	if len(input) < 5 || len(input) > 6 {
-		return nil, errors.New("Invalid input")
+		return nil, ErrInvalidCommand
 	}
 
 	totalBytes, err := strconv.Atoi(input[4])
 	if err != nil {
-		return nil, errors.New("Invalid <bytes> number")
+		return nil, ErrInvalidDataSize
 	}
 
 	cmd := &Command{Name: input[0], QueueName: input[1], DataSize: totalBytes}

@@ -12,6 +12,27 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+var (
+	// ErrIsEmpty is returned when queue is empty
+	ErrIsEmpty = errors.New("queue: is empty")
+
+	// ErrIDOutOfBounds is returned when queue is is out of bounds
+	ErrIDOutOfBounds = errors.New("queue: ID is out of bounds")
+
+	// ErrInvalidName is returned when queue name is not valid
+	ErrInvalidName = errors.New("queue: name is not alphanumeric")
+
+	// ErrNameTooLong means that queue name is longer then allowed limit
+	ErrNameTooLong = errors.New("queue: name is too long")
+
+	// ErrInvalidHeadValue is returned when there is an attempt
+	// to assign invalid queue head value
+	ErrInvalidHeadValue = errors.New("queue: head can not be less then zero")
+
+	// ErrSharedFlush means that there was an attempt to flush shared queue
+	ErrSharedFlush = errors.New("queue: can't flush shared queue")
+)
+
 var validQueueNameRegex = regexp.MustCompile(`[^a-zA-Z0-9_\-\:]+`)
 
 // Consumer represents a queue consumer
@@ -108,7 +129,7 @@ func (q *Queue) Drop() {
 // Flush flushes all queue data
 func (q *Queue) Flush() error {
 	if q.isShared {
-		return errors.New("queue: can't flush shared queue")
+		return ErrSharedFlush
 	}
 	q.Lock()
 	defer q.Unlock()
@@ -168,7 +189,7 @@ func (q *Queue) PutBack(value []byte) error {
 	q.Lock()
 	defer q.Unlock()
 	if q.head < 1 {
-		return errors.New("queue: head can not be less then zero")
+		return ErrInvalidHeadValue
 	}
 	err := q.db.Put(q.dbKey(q.head), value, nil)
 	if err == nil {
@@ -195,9 +216,9 @@ func (q *Queue) ReadItemByID(id uint64) (*Item, error) {
 func (q *Queue) readItemByID(id uint64) (*Item, error) {
 	if id <= q.head || id > q.tail {
 		if q.length() < 1 {
-			return &Item{}, errors.New("queue: is empty")
+			return &Item{}, ErrIsEmpty
 		}
-		return &Item{}, errors.New("queue: ID is out of bounds")
+		return &Item{}, ErrIDOutOfBounds
 	}
 
 	var err error
@@ -248,11 +269,11 @@ func (q *Queue) Path() string {
 
 func (q *Queue) open() error {
 	if validQueueNameRegex.MatchString(q.Name) {
-		return errors.New("queue: name is not alphanumeric")
+		return ErrInvalidName
 	}
 
 	if len(q.Name) > 100 {
-		return errors.New("queue: name is too long")
+		return ErrNameTooLong
 	}
 
 	if !q.isShared {

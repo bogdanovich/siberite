@@ -13,14 +13,14 @@ import (
 )
 
 // Version represents siberite version
-const Version = "siberite-0.6.0"
+const Version = "siberite-0.6.1"
 
 // QueueRepository represents a repository of queues
 type QueueRepository struct {
+	sync.Mutex
 	storage  cmap.ConcurrentMap
 	DataPath string
 	Stats    *Stats
-	sync.Mutex
 }
 
 // Stats keeps service stat fields

@@ -12,6 +12,24 @@ import (
 	"github.com/bogdanovich/siberite/repository"
 )
 
+var (
+	// ErrUnknownCommand is returned when command was not recognized
+	ErrUnknownCommand = &Error{"ERROR", "Unknown command"}
+
+	// ErrInvalidCommand means command wasn't parsed correcty
+	ErrInvalidCommand = &Error{"CLIENT_ERROR", "Invalid command"}
+
+	// ErrCloseCurrentItemFirst is returned when client attemted
+	// to read next item before closing the current one
+	ErrCloseCurrentItemFirst = &Error{"CLIENT_ERROR", "Close current item first"}
+
+	// ErrBadDataChunk is returned when data provided by client has different size
+	ErrBadDataChunk = &Error{"CLIENT_ERROR", "bad data chunk"}
+
+	// ErrInvalidDataSize is returned when data size field is not a number
+	ErrInvalidDataSize = &Error{"CLIENT_ERROR", "Invalid <bytes> number"}
+)
+
 // consumer group separator
 const cgSeparator = "."
 
@@ -27,6 +45,7 @@ type Controller struct {
 	conn           Conn
 	rw             *bufio.ReadWriter
 	repo           *repository.QueueRepository
+	dataBuffer     []byte
 	currentValue   []byte
 	currentCommand *Command
 }
@@ -45,8 +64,12 @@ type Command struct {
 func NewSession(conn Conn, repo *repository.QueueRepository) *Controller {
 	atomic.AddUint64(&repo.Stats.TotalConnections, 1)
 	atomic.AddUint64(&repo.Stats.CurrentConnections, 1)
-	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	return &Controller{conn, rw, repo, nil, nil}
+	return &Controller{
+		conn:       conn,
+		rw:         bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
+		repo:       repo,
+		dataBuffer: make([]byte, 1024),
+	}
 }
 
 // FinishSession aborts unfinished transaction
@@ -64,9 +87,8 @@ func (c *Controller) ReadFirstMessage() (string, error) {
 
 // UnknownCommand reports an error
 func (c *Controller) UnknownCommand() error {
-	err := &Error{"ERROR", "Unknown command"}
-	c.SendError(err)
-	return err
+	c.SendError(ErrUnknownCommand)
+	return ErrUnknownCommand
 }
 
 //SendError sends an error message to the client

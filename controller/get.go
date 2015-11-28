@@ -34,7 +34,7 @@ func (c *Controller) Get(input []string) error {
 	case "peek":
 		err = c.peek(cmd)
 	default:
-		err = &Error{"ERROR", "Invalid command"}
+		err = ErrInvalidCommand
 	}
 
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *Controller) Get(input []string) error {
 
 func (c *Controller) get(cmd *Command) error {
 	if c.currentValue != nil {
-		return &Error{"CLIENT_ERROR", "Close current item first"}
+		return ErrCloseCurrentItemFirst
 	}
 
 	q, err := c.getConsumer(cmd)
