@@ -15,15 +15,15 @@ func (c *Controller) Flush(input []string) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
 		log.Printf(err.Error())
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
 
 	err = q.Flush()
 	if err != nil {
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
 
-	fmt.Fprint(c.rw.Writer, "END\r\n")
+	fmt.Fprint(c.rw.Writer, endMessage)
 	c.rw.Writer.Flush()
 	return nil
 }

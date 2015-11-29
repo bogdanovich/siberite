@@ -40,7 +40,7 @@ func (c *Controller) Set(input []string) error {
 		}
 	}
 
-	fmt.Fprint(c.rw.Writer, "STORED\r\n")
+	fmt.Fprint(c.rw.Writer, storedMessage)
 	c.rw.Writer.Flush()
 	atomic.AddUint64(&c.repo.Stats.CmdSet, 1)
 	return nil

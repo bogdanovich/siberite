@@ -12,26 +12,33 @@ import (
 	"github.com/bogdanovich/siberite/repository"
 )
 
+const (
+	commonError   = "ERROR"
+	clientError   = "CLIENT_ERROR"
+	storedMessage = "STORED\r\n"
+	endMessage    = "END\r\n"
+
+	// consumer group separator
+	cgSeparator = "."
+)
+
 var (
 	// ErrUnknownCommand is returned when command was not recognized
-	ErrUnknownCommand = &Error{"ERROR", "Unknown command"}
+	ErrUnknownCommand = &Error{commonError, "Unknown command"}
 
 	// ErrInvalidCommand means command wasn't parsed correcty
-	ErrInvalidCommand = &Error{"CLIENT_ERROR", "Invalid command"}
+	ErrInvalidCommand = &Error{clientError, "Invalid command"}
 
 	// ErrCloseCurrentItemFirst is returned when client attemted
 	// to read next item before closing the current one
-	ErrCloseCurrentItemFirst = &Error{"CLIENT_ERROR", "Close current item first"}
+	ErrCloseCurrentItemFirst = &Error{clientError, "Close current item first"}
 
 	// ErrBadDataChunk is returned when data provided by client has different size
-	ErrBadDataChunk = &Error{"CLIENT_ERROR", "bad data chunk"}
+	ErrBadDataChunk = &Error{clientError, "bad data chunk"}
 
 	// ErrInvalidDataSize is returned when data size field is not a number
-	ErrInvalidDataSize = &Error{"CLIENT_ERROR", "Invalid <bytes> number"}
+	ErrInvalidDataSize = &Error{clientError, "Invalid <bytes> number"}
 )
-
-// consumer group separator
-const cgSeparator = "."
 
 // Conn represents a connection interface
 type Conn interface {
@@ -97,7 +104,7 @@ func (c *Controller) SendError(err error) {
 	if e, ok := err.(*Error); ok {
 		fmt.Fprintf(c.rw.Writer, "%s\r\n", e.Error())
 	} else {
-		fmt.Fprintf(c.rw.Writer, "ERROR %s\r\n", err.Error())
+		fmt.Fprintf(c.rw.Writer, "%s %s\r\n", commonError, err.Error())
 	}
 
 	c.rw.Writer.Flush()

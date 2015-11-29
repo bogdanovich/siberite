@@ -16,7 +16,7 @@ func (c *Controller) Delete(input []string) error {
 	if cmd.ConsumerGroup != "" {
 		q, err := c.repo.GetQueue(cmd.QueueName)
 		if err != nil {
-			return NewError("ERROR", err)
+			return NewError(commonError, err)
 		}
 
 		err = q.DeleteConsumerGroup(cmd.ConsumerGroup)
@@ -26,9 +26,9 @@ func (c *Controller) Delete(input []string) error {
 
 	if err != nil {
 		log.Printf("Command %s: %s ", cmd, err.Error())
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
-	fmt.Fprint(c.rw.Writer, "END\r\n")
+	fmt.Fprint(c.rw.Writer, endMessage)
 	c.rw.Writer.Flush()
 	return nil
 }
