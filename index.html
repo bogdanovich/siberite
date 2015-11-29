@@ -1,41 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Siberite is a simple, leveldb backed message queue written in Go.</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/github-light.css">
-    <meta name="viewport" content="width=device-width">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+
+    <title>Siberite by bogdanovich</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
+    <header>
+      <div class="inner">
         <h1>Siberite</h1>
-        <p>Siberite is a simple, lightweight, leveldb backed message queue written in Go.</p>
+        <h2>Siberite is a simple, lightweight, leveldb backed message queue written in Go.</h2>
+        <a href="https://github.com/bogdanovich/siberite" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
 
-        <p class="view"><a href="https://github.com/bogdanovich/siberite">View the Project on GitHub <small>bogdanovich/siberite</small></a></p>
-
-
-
-        <ul>
-          <li><a href="https://github.com/bogdanovich/siberite/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/bogdanovich/siberite/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/bogdanovich/siberite">View On <strong>GitHub</strong></a></li>
-        </ul>
-
-        <p class="view"><a href="https://github.com/bogdanovich/siberite/releases/latest">Latest binary release</a></p>
-      </header>
-      <section>
-        <h1>
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
 <a id="siberite" class="anchor" href="#siberite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Siberite</h1>
 
-<p><a href="https://travis-ci.org/bogdanovich/siberite"><img src="https://travis-ci.org/bogdanovich/siberite.svg?branch=master" alt="Build Status"></a>
-<a href="https://gitter.im/bogdanovich/siberite?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="Gitter"></a>
+<p><a href="http://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/hexpm/l/plug.svg" alt="License"></a> <a href="https://travis-ci.org/bogdanovich/siberite"><img src="https://travis-ci.org/bogdanovich/siberite.svg?branch=master" alt="Build"></a> <a href="https://github.com/bogdanovich/siberite/releases/latest"><img src="https://img.shields.io/badge/release-v0.6-blue.svg" alt="Release"></a>
 <a href="https://gowalker.org/github.com/bogdanovich/siberite"><img src="http://gowalker.org/api/v1/badge" alt="Go Walker"></a></p>
 
 <p>Siberite is a simple leveldb backed message queue server<br>
@@ -64,19 +60,20 @@ to consume queue multiple times (using durable cursors feature).</p>
 
 <ol>
 <li>
-<p>Multiple durable cursors per queue using <code>get &lt;queue&gt;:&lt;cursor_name&gt;</code> syntax.</p>
+<p>Siberite clients can consume single source queue multiple times using <code>get &lt;queue&gt;.&lt;cursor_name&gt;</code> syntax.</p>
 
 <ul>
-<li>When you read an item in a usual way: <code>get &lt;queue&gt;</code>, item gets expired and deleted.</li>
-<li>When you read an item using cursor syntax <code>get &lt;queue&gt;:&lt;cursor_name&gt;</code>, a durable
+<li>Usually, with <code>get &lt;queue&gt;</code> syntax, returned message gets expired and deleted from queue.</li>
+<li>With cursor syntax <code>get &lt;queue&gt;.&lt;cursor_name&gt;</code>, a durable
 cursor gets initialized. It shifts forward with every read without deleting
 any messages in the source queue. Number of cursors per queue is not limited.</li>
-<li>If you continue reads from the source queue directly, siberite will continue
-to delete messages from the head of the queue. Any existing cursor that
-internally points to an already deleted message will catch up during next read
-and will start serving messages from the current source queue head.</li>
+<li>If you continue reads from the source queue with usual syntax again, siberite will continue
+deleting already serverd messages from the head of the queue. Any existing cursor that is
+internally points to an already expired message will start serving messages
+from the current queue head on the next read.</li>
 <li>Durable cursors are also support two-phase reliable reads. All failed reliable
-reads for each cursor are stored in cursor's own small persistent queue.</li>
+reads for each cursor get stored in cursor's own small persistent queue and get
+served to other cursor readers.</li>
 </ul>
 </li>
 <li>
@@ -103,7 +100,6 @@ by using the following syntax <code>set &lt;queue&gt;+&lt;another_queue&gt;+&lt;
 <pre><code>go get github.com/bogdanovich/siberite
 cd $GOPATH/src/github.com/bogdanovich/siberite
 go get ./...
-cd siberite
 go build siberite.go
 mkdir ./data
 ./siberite -listen localhost:22133 -data ./data
@@ -120,10 +116,10 @@ mkdir ./data
 <p>Siberite follows the same protocol as <a href="http://github.com/robey/kestrel/blob/master/docs/guide.md#memcache">Kestrel</a>,
 which is the memcache TCP text protocol.</p>
 
-<p><a href="docs/clients.md">List of compatible clients</a></p>
+<p><a href="https://github.com/bogdanovich/siberite/blob/master/docs/clients.md">List of compatible clients</a></p>
 
 <h2>
-<a id="telnet-example" class="anchor" href="#telnet-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Telnet example</h2>
+<a id="telnet-demo" class="anchor" href="#telnet-demo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Telnet demo</h2>
 
 <pre><code>telnet localhost 22133
 Connected to localhost.
@@ -167,9 +163,9 @@ END
 # get work/open
 # get work/close/open
 # get work/abort
-# get work:cursor_name
-# get work:cursor_name/open
-# get work:my_cursor/close/open
+# get work.cursor_name
+# get work.cursor_name/open
+# get work.my_cursor/close/open
 # set work+fanout_queue
 # flush work
 # delete work
@@ -182,14 +178,26 @@ END
 <ul>
 <li>Waiting a given time limit for a new item to arrive /t= (allowed by protocol but does nothing)</li>
 </ul>
-      </section>
-      <footer>
-        <p>This project is maintained by<br/><a href="https://github.com/bogdanovich">Anton Bogdanovich</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/bogdanovich/siberite/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/bogdanovich/siberite/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/bogdanovich/siberite"></a> is maintained by <a href="https://github.com/bogdanovich">bogdanovich</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
-              <script type="text/javascript">
+
+            <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
