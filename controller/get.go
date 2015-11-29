@@ -40,7 +40,7 @@ func (c *Controller) Get(input []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(c.rw.Writer, "END\r\n")
+	fmt.Fprint(c.rw.Writer, endMessage)
 	c.rw.Writer.Flush()
 	return nil
 }
@@ -53,7 +53,7 @@ func (c *Controller) get(cmd *Command) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
 		log.Println(cmd, err)
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
 	value, _ := q.GetNext()
 	if len(value) > 0 {
@@ -72,7 +72,7 @@ func (c *Controller) getClose(cmd *Command) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
 		log.Println(cmd, err)
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
 	if c.currentValue != nil {
 		q.Stats().UpdateOpenReads(-1)
@@ -87,11 +87,11 @@ func (c *Controller) abort() error {
 		q, err := c.getConsumer(c.currentCommand)
 		if err != nil {
 			log.Println(c.currentCommand, err)
-			return NewError("ERROR", err)
+			return NewError(commonError, err)
 		}
 		err = q.PutBack(c.currentValue)
 		if err != nil {
-			return NewError("ERROR", err)
+			return NewError(commonError, err)
 		}
 		if c.currentValue != nil {
 			q.Stats().UpdateOpenReads(-1)
@@ -105,7 +105,7 @@ func (c *Controller) peek(cmd *Command) error {
 	q, err := c.getConsumer(cmd)
 	if err != nil {
 		log.Println(cmd, err)
-		return NewError("ERROR", err)
+		return NewError(commonError, err)
 	}
 	value, _ := q.Peek()
 	if len(value) > 0 {
