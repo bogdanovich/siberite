@@ -25,18 +25,19 @@ to consume queue multiple times (using durable cursors feature).
 
 ## Features
 
-1. Multiple durable cursors per queue using `get <queue>.<cursor_name>` syntax.
+1. Siberite clients can consume single source queue multiple times using `get <queue>.<cursor_name>` syntax.
 
-  - When you read an item in a usual way: `get <queue>`, item gets expired and deleted.
-  - When you read an item using cursor syntax `get <queue>.<cursor_name>`, a durable
+  - Usually, with `get <queue>` syntax, returned message gets expired and deleted from queue.
+  - With cursor syntax `get <queue>.<cursor_name>`, a durable
     cursor gets initialized. It shifts forward with every read without deleting
     any messages in the source queue. Number of cursors per queue is not limited.
-  - If you continue reads from the source queue directly, siberite will continue
-    to delete messages from the head of the queue. Any existing cursor that
-    internally points to an already deleted message will catch up during next read
-    and will start serving messages from the current source queue head.
+  - If you continue reads from the source queue with usual syntax again, siberite will continue
+    deleting already serverd messages from the head of the queue. Any existing cursor that is
+    internally points to an already expired message will start serving messages
+    from the current queue head on the next read.
   - Durable cursors are also support two-phase reliable reads. All failed reliable
-    reads for each cursor are stored in cursor's own small persistent queue.
+    reads for each cursor get stored in cursor's own small persistent queue and get
+    served to other cursor readers.
 
 2. Fanout queues
 
