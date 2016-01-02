@@ -33,6 +33,8 @@ var (
 	ErrSharedFlush = errors.New("queue: can't flush shared queue")
 )
 
+const levelDBOpenFilesCacheCapacity = 64
+
 var validQueueNameRegex = regexp.MustCompile(`[^a-zA-Z0-9_\-\:]+`)
 
 // Consumer represents a queue consumer
@@ -278,7 +280,10 @@ func (q *Queue) open() error {
 
 	if !q.isShared {
 		var err error
-		q.db, err = leveldb.OpenFile(q.Path(), &opt.Options{})
+		q.db, err = leveldb.OpenFile(
+			q.Path(),
+			&opt.Options{OpenFilesCacheCapacity: levelDBOpenFilesCacheCapacity},
+		)
 		if err != nil {
 			return err
 		}

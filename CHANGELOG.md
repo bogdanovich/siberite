@@ -1,3 +1,6 @@
+## 0.6.2
+- Limit OpenFilesCacheCapacity to 64 per queue
+
 ## 0.6.0
 - Change durable cursor separator from `:` to `.` for Kestrel compatibility.<br>
   Kestrel uses `:` as a namespace separator.
