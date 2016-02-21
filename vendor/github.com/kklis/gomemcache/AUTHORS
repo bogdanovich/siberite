@@ -1,0 +1,10 @@
+Krzysztof Klis - initial version author
+Jan Chmiel - testing, large data sets fix
+James D. Nurmi - Get() return errors clarification
+Roman Zabaznov - Get() read fix
+Ilya Grigorik - fix for latest net.Dial
+Thanabodee Charoenpiriyakij - fix for Go release r.59
+Arbo von Monkiewitsch - support for multi-get, tests refactoring
+Simon Menke - Added FlushAll() and Dial()
+ando-masaki - Unix socket support
+Anton Bogdanovich - Darner compatibility fix

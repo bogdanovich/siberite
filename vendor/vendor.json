@@ -1,0 +1,91 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "github.com/dustin/randbo",
+			"revision": "7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0",
+			"revisionTime": "2014-04-28T16:14:29-07:00"
+		},
+		{
+			"path": "github.com/golang/snappy",
+			"revision": "1963d058044b19e16595f80d5050fa54e2070438",
+			"revisionTime": "2016-01-29T13:31:48+11:00"
+		},
+		{
+			"path": "github.com/kklis/gomemcache",
+			"revision": "6d04ba58f087df9782709344a970d3326a63d476",
+			"revisionTime": "2015-08-24T20:53:58+02:00"
+		},
+		{
+			"path": "github.com/streamrail/concurrent-map",
+			"revision": "ecbbc6d8cf8a7aba6c798ed4e6131a9cfbc3e173",
+			"revisionTime": "2015-11-29T08:57:38+02:00"
+		},
+		{
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "bcd32dcc8b1e09b14f55703dcf891fdd82561143",
+			"revisionTime": "2015-09-24T18:06:42+01:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/cache",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/comparer",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/errors",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/filter",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/iterator",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/journal",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/memdb",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/opt",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/storage",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/table",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		},
+		{
+			"path": "github.com/syndtr/goleveldb/leveldb/util",
+			"revision": "b7c1cafa822344831a63ad9c8fafb1556e66d33d",
+			"revisionTime": "2016-01-28T11:02:52+07:00"
+		}
+	]
+}
