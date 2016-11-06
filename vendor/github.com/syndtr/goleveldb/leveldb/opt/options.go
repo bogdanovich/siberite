@@ -8,10 +8,11 @@
 package opt
 
 import (
+	"math"
+
 	"github.com/syndtr/goleveldb/leveldb/cache"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/syndtr/goleveldb/leveldb/filter"
-	"math"
 )
 
 const (
@@ -264,6 +265,13 @@ type Options struct {
 	// The default value is false.
 	DisableCompactionBackoff bool
 
+	// DisableLargeBatchTransaction allows disabling switch-to-transaction mode
+	// on large batch write. If enable batch writes large than WriteBuffer will
+	// use transaction.
+	//
+	// The default is false.
+	DisableLargeBatchTransaction bool
+
 	// ErrorIfExist defines whether an error should returned if the DB already
 	// exist.
 	//
@@ -303,6 +311,11 @@ type Options struct {
 	//
 	// The default is false.
 	NoSync bool
+
+	// NoWriteMerge allows disabling write merge.
+	//
+	// The default is false.
+	NoWriteMerge bool
 
 	// OpenFilesCacher provides cache algorithm for open files caching.
 	// Specify NoCacher to disable caching algorithm.
@@ -493,6 +506,13 @@ func (o *Options) GetDisableCompactionBackoff() bool {
 	return o.DisableCompactionBackoff
 }
 
+func (o *Options) GetDisableLargeBatchTransaction() bool {
+	if o == nil {
+		return false
+	}
+	return o.DisableLargeBatchTransaction
+}
+
 func (o *Options) GetErrorIfExist() bool {
 	if o == nil {
 		return false
@@ -526,6 +546,13 @@ func (o *Options) GetNoSync() bool {
 		return false
 	}
 	return o.NoSync
+}
+
+func (o *Options) GetNoWriteMerge() bool {
+	if o == nil {
+		return false
+	}
+	return o.NoWriteMerge
 }
 
 func (o *Options) GetOpenFilesCacher() Cacher {
@@ -614,6 +641,11 @@ func (ro *ReadOptions) GetStrict(strict Strict) bool {
 // WriteOptions holds the optional parameters for 'write operation'. The
 // 'write operation' includes Write, Put and Delete.
 type WriteOptions struct {
+	// NoWriteMerge allows disabling write merge.
+	//
+	// The default is false.
+	NoWriteMerge bool
+
 	// Sync is whether to sync underlying writes from the OS buffer cache
 	// through to actual disk, if applicable. Setting Sync can result in
 	// slower writes.
@@ -627,6 +659,13 @@ type WriteOptions struct {
 	//
 	// The default value is false.
 	Sync bool
+}
+
+func (wo *WriteOptions) GetNoWriteMerge() bool {
+	if wo == nil {
+		return false
+	}
+	return wo.NoWriteMerge
 }
 
 func (wo *WriteOptions) GetSync() bool {

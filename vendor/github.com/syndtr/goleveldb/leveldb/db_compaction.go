@@ -12,6 +12,7 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 )
 
 var (
@@ -20,8 +21,8 @@ var (
 
 type cStat struct {
 	duration time.Duration
-	read     uint64
-	write    uint64
+	read     int64
+	write    int64
 }
 
 func (p *cStat) add(n *cStatStaging) {
@@ -30,7 +31,7 @@ func (p *cStat) add(n *cStatStaging) {
 	p.write += n.write
 }
 
-func (p *cStat) get() (duration time.Duration, read, write uint64) {
+func (p *cStat) get() (duration time.Duration, read, write int64) {
 	return p.duration, p.read, p.write
 }
 
@@ -38,8 +39,8 @@ type cStatStaging struct {
 	start    time.Time
 	duration time.Duration
 	on       bool
-	read     uint64
-	write    uint64
+	read     int64
+	write    int64
 }
 
 func (p *cStatStaging) startTimer() {
@@ -72,7 +73,7 @@ func (p *cStats) addStat(level int, n *cStatStaging) {
 	p.lk.Unlock()
 }
 
-func (p *cStats) getStat(level int) (duration time.Duration, read, write uint64) {
+func (p *cStats) getStat(level int) (duration time.Duration, read, write int64) {
 	p.lk.Lock()
 	defer p.lk.Unlock()
 	if level < len(p.stats) {
@@ -95,7 +96,7 @@ noerr:
 			default:
 				goto haserr
 			}
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			return
 		}
 	}
@@ -112,7 +113,7 @@ haserr:
 				goto hasperr
 			default:
 			}
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			return
 		}
 	}
@@ -125,7 +126,7 @@ hasperr:
 		case db.writeLockC <- struct{}{}:
 			// Hold write lock, so that write won't pass-through.
 			db.compWriteLocking = true
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			if db.compWriteLocking {
 				// We should release the lock or Close will hang.
 				<-db.writeLockC
@@ -171,7 +172,7 @@ func (db *DB) compactionTransact(name string, t compactionTransactInterface) {
 		disableBackoff = db.s.o.GetDisableCompactionBackoff()
 	)
 	for n := 0; ; n++ {
-		// Check wether the DB is closed.
+		// Check whether the DB is closed.
 		if db.isClosed() {
 			db.logf("%s exiting", name)
 			db.compactionExitTransact()
@@ -194,7 +195,7 @@ func (db *DB) compactionTransact(name string, t compactionTransactInterface) {
 				db.logf("%s exiting (persistent error %q)", name, perr)
 				db.compactionExitTransact()
 			}
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			db.logf("%s exiting", name)
 			db.compactionExitTransact()
 		}
@@ -223,7 +224,7 @@ func (db *DB) compactionTransact(name string, t compactionTransactInterface) {
 			}
 			select {
 			case <-backoffT.C:
-			case _, _ = <-db.closeC:
+			case <-db.closeC:
 				db.logf("%s exiting", name)
 				db.compactionExitTransact()
 			}
@@ -255,6 +256,14 @@ func (db *DB) compactionExitTransact() {
 	panic(errCompactionTransactExiting)
 }
 
+func (db *DB) compactionCommit(name string, rec *sessionRecord) {
+	db.compCommitLk.Lock()
+	defer db.compCommitLk.Unlock() // Defer is necessary.
+	db.compactionTransactFunc(name+"@commit", func(cnt *compactionTransactCounter) error {
+		return db.s.commit(rec)
+	}, nil)
+}
+
 func (db *DB) memCompaction() {
 	mdb := db.getFrozenMem()
 	if mdb == nil {
@@ -279,7 +288,7 @@ func (db *DB) memCompaction() {
 	case <-db.compPerErrC:
 		close(resumeC)
 		resumeC = nil
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		return
 	}
 
@@ -289,6 +298,7 @@ func (db *DB) memCompaction() {
 		flushLevel int
 	)
 
+	// Generate tables.
 	db.compactionTransactFunc("memdb@flush", func(cnt *compactionTransactCounter) (err error) {
 		stats.startTimer()
 		flushLevel, err = db.s.flushMemdb(rec, mdb.DB, db.memdbMaxLevel)
@@ -297,22 +307,20 @@ func (db *DB) memCompaction() {
 	}, func() error {
 		for _, r := range rec.addedTables {
 			db.logf("memdb@flush revert @%d", r.num)
-			f := db.s.getTableFile(r.num)
-			if err := f.Remove(); err != nil {
+			if err := db.s.stor.Remove(storage.FileDesc{Type: storage.TypeTable, Num: r.num}); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
 
-	db.compactionTransactFunc("memdb@commit", func(cnt *compactionTransactCounter) (err error) {
-		stats.startTimer()
-		rec.setJournalNum(db.journalFile.Num())
-		rec.setSeqNum(db.frozenSeq)
-		err = db.s.commit(rec)
-		stats.stopTimer()
-		return
-	}, nil)
+	rec.setJournalNum(db.journalFd.Num)
+	rec.setSeqNum(db.frozenSeq)
+
+	// Commit.
+	stats.startTimer()
+	db.compactionCommit("memdb", rec)
+	stats.stopTimer()
 
 	db.logf("memdb@flush committed F·%d T·%v", len(rec.addedTables), stats.duration)
 
@@ -329,13 +337,13 @@ func (db *DB) memCompaction() {
 		select {
 		case <-resumeC:
 			close(resumeC)
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			return
 		}
 	}
 
 	// Trigger table compaction.
-	db.compSendTrigger(db.tcompCmdC)
+	db.compTrigger(db.tcompCmdC)
 }
 
 type tableCompactionBuilder struct {
@@ -370,7 +378,7 @@ func (b *tableCompactionBuilder) appendKV(key, value []byte) error {
 			select {
 			case ch := <-b.db.tcompPauseC:
 				b.db.pauseCompaction(ch)
-			case _, _ = <-b.db.closeC:
+			case <-b.db.closeC:
 				b.db.compactionExitTransact()
 			default:
 			}
@@ -399,7 +407,7 @@ func (b *tableCompactionBuilder) flush() error {
 	}
 	b.rec.addTableFile(b.c.sourceLevel+1, t)
 	b.stat1.write += t.size
-	b.s.logf("table@build created L%d@%d N·%d S·%s %q:%q", b.c.sourceLevel+1, t.file.Num(), b.tw.tw.EntriesLen(), shortenb(int(t.size)), t.imin, t.imax)
+	b.s.logf("table@build created L%d@%d N·%d S·%s %q:%q", b.c.sourceLevel+1, t.fd.Num, b.tw.tw.EntriesLen(), shortenb(int(t.size)), t.imin, t.imax)
 	b.tw = nil
 	return nil
 }
@@ -444,7 +452,7 @@ func (b *tableCompactionBuilder) run(cnt *compactionTransactCounter) error {
 		}
 
 		ikey := iter.Key()
-		ukey, seq, kt, kerr := parseIkey(ikey)
+		ukey, seq, kt, kerr := parseInternalKey(ikey)
 
 		if kerr == nil {
 			shouldStop := !resumed && b.c.shouldStopBefore(ikey)
@@ -470,14 +478,14 @@ func (b *tableCompactionBuilder) run(cnt *compactionTransactCounter) error {
 
 				hasLastUkey = true
 				lastUkey = append(lastUkey[:0], ukey...)
-				lastSeq = kMaxSeq
+				lastSeq = keyMaxSeq
 			}
 
 			switch {
 			case lastSeq <= b.minSeq:
 				// Dropped because newer entry for same user key exist
 				fallthrough // (A)
-			case kt == ktDel && seq <= b.minSeq && b.c.baseLevelForKey(lastUkey):
+			case kt == keyTypeDel && seq <= b.minSeq && b.c.baseLevelForKey(lastUkey):
 				// For this user key:
 				// (1) there is no data in higher levels
 				// (2) data in lower levels will have larger seq numbers
@@ -499,7 +507,7 @@ func (b *tableCompactionBuilder) run(cnt *compactionTransactCounter) error {
 			// Don't drop corrupted keys.
 			hasLastUkey = false
 			lastUkey = lastUkey[:0]
-			lastSeq = kMaxSeq
+			lastSeq = keyMaxSeq
 			b.kerrCnt++
 		}
 
@@ -522,8 +530,7 @@ func (b *tableCompactionBuilder) run(cnt *compactionTransactCounter) error {
 func (b *tableCompactionBuilder) revert() error {
 	for _, at := range b.rec.addedTables {
 		b.s.logf("table@build revert @%d", at.num)
-		f := b.s.getTableFile(at.num)
-		if err := f.Remove(); err != nil {
+		if err := b.s.stor.Remove(storage.FileDesc{Type: storage.TypeTable, Num: at.num}); err != nil {
 			return err
 		}
 	}
@@ -538,12 +545,10 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 
 	if !noTrivial && c.trivial() {
 		t := c.levels[0][0]
-		db.logf("table@move L%d@%d -> L%d", c.sourceLevel, t.file.Num(), c.sourceLevel+1)
-		rec.delTable(c.sourceLevel, t.file.Num())
+		db.logf("table@move L%d@%d -> L%d", c.sourceLevel, t.fd.Num, c.sourceLevel+1)
+		rec.delTable(c.sourceLevel, t.fd.Num)
 		rec.addTableFile(c.sourceLevel+1, t)
-		db.compactionTransactFunc("table@move", func(cnt *compactionTransactCounter) (err error) {
-			return db.s.commit(rec)
-		}, nil)
+		db.compactionCommit("table-move", rec)
 		return
 	}
 
@@ -552,7 +557,7 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 		for _, t := range tables {
 			stats[i].read += t.size
 			// Insert deleted tables into record
-			rec.delTable(c.sourceLevel+i, t.file.Num())
+			rec.delTable(c.sourceLevel+i, t.fd.Num)
 		}
 	}
 	sourceSize := int(stats[0].read + stats[1].read)
@@ -571,12 +576,10 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	}
 	db.compactionTransact("table@build", b)
 
-	// Commit changes
-	db.compactionTransactFunc("table@commit", func(cnt *compactionTransactCounter) (err error) {
-		stats[1].startTimer()
-		defer stats[1].stopTimer()
-		return db.s.commit(rec)
-	}, nil)
+	// Commit.
+	stats[1].startTimer()
+	db.compactionCommit("table", rec)
+	stats[1].stopTimer()
 
 	resultSize := int(stats[1].write)
 	db.logf("table@compaction committed F%s S%s Ke·%d D·%d T·%v", sint(len(rec.addedTables)-len(rec.deletedTables)), sshortenb(resultSize-sourceSize), b.kerrCnt, b.dropCnt, stats[1].duration)
@@ -640,7 +643,7 @@ func (db *DB) tableNeedCompaction() bool {
 func (db *DB) pauseCompaction(ch chan<- struct{}) {
 	select {
 	case ch <- struct{}{}:
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		db.compactionExitTransact()
 	}
 }
@@ -649,11 +652,11 @@ type cCmd interface {
 	ack(err error)
 }
 
-type cIdle struct {
+type cAuto struct {
 	ackC chan<- error
 }
 
-func (r cIdle) ack(err error) {
+func (r cAuto) ack(err error) {
 	if r.ackC != nil {
 		defer func() {
 			recover()
@@ -677,38 +680,38 @@ func (r cRange) ack(err error) {
 	}
 }
 
-// This will trigger auto compation and/or wait for all compaction to be done.
-func (db *DB) compSendIdle(compC chan<- cCmd) (err error) {
+// This will trigger auto compaction but will not wait for it.
+func (db *DB) compTrigger(compC chan<- cCmd) {
+	select {
+	case compC <- cAuto{}:
+	default:
+	}
+}
+
+// This will trigger auto compaction and/or wait for all compaction to be done.
+func (db *DB) compTriggerWait(compC chan<- cCmd) (err error) {
 	ch := make(chan error)
 	defer close(ch)
 	// Send cmd.
 	select {
-	case compC <- cIdle{ch}:
+	case compC <- cAuto{ch}:
 	case err = <-db.compErrC:
 		return
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		return ErrClosed
 	}
 	// Wait cmd.
 	select {
 	case err = <-ch:
 	case err = <-db.compErrC:
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		return ErrClosed
 	}
 	return err
 }
 
-// This will trigger auto compaction but will not wait for it.
-func (db *DB) compSendTrigger(compC chan<- cCmd) {
-	select {
-	case compC <- cIdle{}:
-	default:
-	}
-}
-
 // Send range compaction request.
-func (db *DB) compSendRange(compC chan<- cCmd, level int, min, max []byte) (err error) {
+func (db *DB) compTriggerRange(compC chan<- cCmd, level int, min, max []byte) (err error) {
 	ch := make(chan error)
 	defer close(ch)
 	// Send cmd.
@@ -716,14 +719,14 @@ func (db *DB) compSendRange(compC chan<- cCmd, level int, min, max []byte) (err 
 	case compC <- cRange{level, min, max, ch}:
 	case err := <-db.compErrC:
 		return err
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		return ErrClosed
 	}
 	// Wait cmd.
 	select {
 	case err = <-ch:
 	case err = <-db.compErrC:
-	case _, _ = <-db.closeC:
+	case <-db.closeC:
 		return ErrClosed
 	}
 	return err
@@ -748,14 +751,14 @@ func (db *DB) mCompaction() {
 		select {
 		case x = <-db.mcompCmdC:
 			switch x.(type) {
-			case cIdle:
+			case cAuto:
 				db.memCompaction()
 				x.ack(nil)
 				x = nil
 			default:
 				panic("leveldb: unknown command")
 			}
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
 			return
 		}
 	}
@@ -788,7 +791,7 @@ func (db *DB) tCompaction() {
 			case ch := <-db.tcompPauseC:
 				db.pauseCompaction(ch)
 				continue
-			case _, _ = <-db.closeC:
+			case <-db.closeC:
 				return
 			default:
 			}
@@ -803,13 +806,13 @@ func (db *DB) tCompaction() {
 			case ch := <-db.tcompPauseC:
 				db.pauseCompaction(ch)
 				continue
-			case _, _ = <-db.closeC:
+			case <-db.closeC:
 				return
 			}
 		}
 		if x != nil {
 			switch cmd := x.(type) {
-			case cIdle:
+			case cAuto:
 				ackQ = append(ackQ, x)
 			case cRange:
 				x.ack(db.tableRangeCompaction(cmd.level, cmd.min, cmd.max))
