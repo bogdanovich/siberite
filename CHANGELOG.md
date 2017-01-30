@@ -1,3 +1,6 @@
+## 0.6.3
+- Added support for 'quit' command (memcached protocol compatibility)
+
 ## 0.6.2
 - Limit OpenFilesCacheCapacity to 64 per queue
 

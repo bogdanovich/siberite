@@ -80,8 +80,8 @@ func (s *Service) handleConnection(conn *net.TCPConn) {
 	defer conn.Close()
 	defer s.wg.Done()
 
-	controller := controller.NewSession(conn, s.repo)
-	defer controller.FinishSession()
+	c := controller.NewSession(conn, s.repo)
+	defer c.FinishSession()
 
 	for {
 		select {
@@ -90,14 +90,15 @@ func (s *Service) handleConnection(conn *net.TCPConn) {
 			return
 		default:
 		}
-		err := controller.Dispatch()
+		err := c.Dispatch()
 		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 			continue
 		}
 		if err != nil {
-			if err.Error() != "EOF" {
-				log.Println(conn.RemoteAddr(), err)
+			if err == controller.ErrClientQuit || err.Error() == "EOF" {
+				return
 			}
+			log.Println(conn.RemoteAddr(), err)
 			return
 		}
 	}
