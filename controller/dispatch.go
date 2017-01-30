@@ -33,6 +33,8 @@ func (c *Controller) Dispatch() error {
 		err = c.Flush(command)
 	case "flush_all":
 		err = c.FlushAll()
+	case "quit":
+		return ErrClientQuit
 	default:
 		return c.UnknownCommand()
 	}

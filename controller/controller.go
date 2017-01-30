@@ -38,6 +38,9 @@ var (
 
 	// ErrInvalidDataSize is returned when data size field is not a number
 	ErrInvalidDataSize = &Error{clientError, "Invalid <bytes> number"}
+
+	// ErrClientQuit is returned when client sends 'quit' command (not an error)
+	ErrClientQuit = &Error{commonError, "Quit command received"}
 )
 
 // Conn represents a connection interface

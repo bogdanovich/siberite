@@ -142,4 +142,11 @@ func Test_Controller_Dispatch(t *testing.T) {
 	err = controller.Dispatch()
 	assert.Nil(t, err)
 	assert.Equal(t, "Flushed all queues.\r\n", mockTCPConn.WriteBuffer.String())
+
+	// Command: quit
+	fmt.Fprintf(&mockTCPConn.ReadBuffer, "quit\r\n")
+	err = controller.Dispatch()
+	assert.Error(t, err, "Quit command received")
+
+	mockTCPConn.WriteBuffer.Reset()
 }
