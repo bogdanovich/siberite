@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bogdanovich/siberite/queue"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 var storagePath = dir + "/consumers"

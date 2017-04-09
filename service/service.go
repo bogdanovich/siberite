@@ -58,7 +58,7 @@ func (s *Service) Serve(laddr *net.TCPAddr) {
 		}
 		listener.SetDeadline(time.Now().Add(1e9))
 		conn, err := listener.AcceptTCP()
-		if nil != err {
+		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 				continue
 			}

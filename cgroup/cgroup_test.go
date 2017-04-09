@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bogdanovich/siberite/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 var dir = "./test_data"

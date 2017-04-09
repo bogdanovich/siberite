@@ -7,7 +7,6 @@ import (
 
 // Dispatch routes client commands to their respective handlers
 func (c *Controller) Dispatch() error {
-	var err error
 	c.conn.SetDeadline(time.Now().Add(3e9))
 	message, err := c.ReadFirstMessage()
 	if err != nil {

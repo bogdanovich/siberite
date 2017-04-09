@@ -19,11 +19,6 @@ func Test_Controller_Stats(t *testing.T) {
 	assert.NoError(t, err)
 	cg.GetNext()
 
-	cg, err = q.ConsumerGroup("cg2")
-	assert.NoError(t, err)
-	cg.GetNext()
-	cg.GetNext()
-
 	err = controller.Stats()
 	statsResponse := "STAT uptime 0\r\n" +
 		fmt.Sprintf("STAT time %d\r\n", time.Now().Unix()) +
@@ -36,8 +31,6 @@ func Test_Controller_Stats(t *testing.T) {
 		"STAT queue_test_open_transactions 0\r\n" +
 		fmt.Sprintf("STAT queue_test.cg1_items %d\r\n", 2) +
 		"STAT queue_test.cg1_open_transactions 0\r\n" +
-		fmt.Sprintf("STAT queue_test.cg2_items %d\r\n", 1) +
-		"STAT queue_test.cg2_open_transactions 0\r\n" +
 		"END\r\n"
 	assert.Nil(t, err)
 	assert.Equal(t, statsResponse, mockTCPConn.WriteBuffer.String())

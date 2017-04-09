@@ -28,7 +28,7 @@ func Test_StartGetVersionAndStop(t *testing.T) {
 	s := New(dir)
 
 	laddr, err := net.ResolveTCPAddr("tcp", hostAndPort)
-	if nil != err {
+	if err != nil {
 		log.Fatalln(err)
 	}
 

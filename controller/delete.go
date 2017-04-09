@@ -29,6 +29,5 @@ func (c *Controller) Delete(input []string) error {
 		return NewError(commonError, err)
 	}
 	fmt.Fprint(c.rw.Writer, endMessage)
-	c.rw.Writer.Flush()
-	return nil
+	return c.rw.Writer.Flush()
 }
