@@ -4,11 +4,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bogdanovich/siberite/queue"
-	"github.com/streamrail/concurrent-map"
+	"github.com/orcaman/concurrent-map"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 // CGManager represents multiple consumer group manager

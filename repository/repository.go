@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/orcaman/concurrent-map"
+
 	"github.com/bogdanovich/siberite/cgroup"
-	"github.com/streamrail/concurrent-map"
 )
 
 // Version represents siberite version

@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bogdanovich/siberite/repository"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bogdanovich/siberite/repository"
 )
 
 var dir = "./test_data"

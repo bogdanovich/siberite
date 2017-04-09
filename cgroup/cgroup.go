@@ -6,8 +6,9 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/bogdanovich/siberite/queue"
 	"github.com/syndtr/goleveldb/leveldb"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 const (

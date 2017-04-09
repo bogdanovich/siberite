@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bogdanovich/siberite/cgroup"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bogdanovich/siberite/cgroup"
 )
 
 var dir = "./test_data"
