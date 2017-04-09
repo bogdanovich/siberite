@@ -4,7 +4,6 @@ import "fmt"
 
 // Stats handles STATS command
 func (c *Controller) Stats() error {
-
 	for _, item := range c.repo.FullStats() {
 		fmt.Fprintf(c.rw.Writer, "STAT %s %s\r\n", item.Key, item.Value)
 	}

@@ -14,7 +14,7 @@ var name = "test"
 
 func TestMain(m *testing.M) {
 	os.RemoveAll(dir)
-	err = os.MkdirAll(dir, 0777)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -83,12 +83,10 @@ func Test_FullStats(t *testing.T) {
 	defer repo.DeleteAllQueues()
 
 	repo.GetQueue("test1")
-	repo.GetQueue("test2")
 
 	statItemKeys := []string{
 		"uptime", "time", "version", "curr_connections", "total_connections",
-		"cmd_get", "cmd_set", "queue_test2_items", "queue_test2_open_transactions",
-		"queue_test1_items", "queue_test1_open_transactions",
+		"cmd_get", "cmd_set", "queue_test1_items", "queue_test1_open_transactions",
 	}
 
 	for i, statItem := range repo.FullStats() {

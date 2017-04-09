@@ -18,12 +18,10 @@ func (c *Controller) Flush(input []string) error {
 		return NewError(commonError, err)
 	}
 
-	err = q.Flush()
-	if err != nil {
+	if err = q.Flush(); err != nil {
 		return NewError(commonError, err)
 	}
 
 	fmt.Fprint(c.rw.Writer, endMessage)
-	c.rw.Writer.Flush()
-	return nil
+	return c.rw.Writer.Flush()
 }

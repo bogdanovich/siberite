@@ -1,3 +1,6 @@
+## 0.6.4 (unreleased)
+- Added PID file support (thanks to @jeteon)
+
 ## 0.6.3
 - Added support for 'quit' command (memcached protocol compatibility)
 

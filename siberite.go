@@ -35,25 +35,22 @@ func main() {
 
 	// Write a PID file if its requested
 	if len(*pidPath) > 0 {
-		err := ioutil.WriteFile(*pidPath, []byte(strconv.Itoa(os.Getpid())), 0644)
-		if nil != err {
+		if err := ioutil.WriteFile(*pidPath, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
 			log.Fatalln(err)
 		}
 		defer os.Remove(*pidPath)
 	}
-	
+
 	laddr, err := net.ResolveTCPAddr("tcp", *hostAndPort)
-	if nil != err {
+	if err != nil {
 		log.Fatalln(err)
 	}
 
 	go service.Serve(laddr)
 
-	// Handle SIGINT and SIGTERM.
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	log.Println(<-ch)
 
-	// Stop the service gracefully.
 	service.Stop()
 }
