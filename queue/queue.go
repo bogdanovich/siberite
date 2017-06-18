@@ -211,7 +211,7 @@ func (q *Queue) Peek() ([]byte, error) {
 // ReadItemByID returns a value by it's id
 func (q *Queue) ReadItemByID(id uint64) (*Item, error) {
 	q.RLock()
-	q.RUnlock()
+	defer q.RUnlock()
 	return q.readItemByID(id)
 }
 
@@ -232,7 +232,7 @@ func (q *Queue) readItemByID(id uint64) (*Item, error) {
 // ReadItemByOffset returns an item by offset from the queue head, starting from 0.
 func (q *Queue) ReadItemByOffset(offset uint64) (*Item, error) {
 	q.RLock()
-	q.RUnlock()
+	defer q.RUnlock()
 	return q.readItemByID(q.head + 1 + offset)
 }
 
