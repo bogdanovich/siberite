@@ -4,12 +4,6 @@
 *.so
 
 # Folders
-data
-darner_data
-siberite/data
-siberite/siberite
-bench/bench/bench
-bench/local
 _obj
 _test
 
@@ -26,8 +20,5 @@ _cgo_export.*
 _testmain.go
 
 *.exe
-*.test
-*.prof
 
-# IDE
-.idea/
+.DS_Store

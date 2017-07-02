@@ -1,0 +1,37 @@
+package: github.com/bogdanovich/siberite
+import:
+- package: github.com/davecgh/go-spew
+  version: ^1.1.0
+  subpackages:
+  - spew
+- package: github.com/dustin/randbo
+  version: 7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0
+- package: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
+- package: github.com/kklis/gomemcache
+  version: ^1.0.0
+- package: github.com/orcaman/concurrent-map
+  version: 2ae17bc4c860c83513ee50feb9746f3e50d7515d
+- package: github.com/pmezard/go-difflib
+  version: ^1.0.0
+  subpackages:
+  - difflib
+- package: github.com/stretchr/testify
+  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
+  subpackages:
+  - assert
+- package: github.com/syndtr/goleveldb
+  version: 3c5717caf1475fd25964109a0fc640bd150fce43
+  subpackages:
+  - leveldb
+  - leveldb/cache
+  - leveldb/comparer
+  - leveldb/errors
+  - leveldb/filter
+  - leveldb/iterator
+  - leveldb/journal
+  - leveldb/memdb
+  - leveldb/opt
+  - leveldb/storage
+  - leveldb/table
+  - leveldb/util

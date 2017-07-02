@@ -1,0 +1,39 @@
+hash: d56b192479926255342490c445ccc3dcb1d4041b9fa67866e8439e562032b878
+updated: 2017-07-01T17:03:21.364037826-07:00
+imports:
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
+- name: github.com/dustin/randbo
+  version: 7f1b564ca7242d22bcc6e2128beb90d9fa38b9f0
+- name: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
+- name: github.com/kklis/gomemcache
+  version: 6d04ba58f087df9782709344a970d3326a63d476
+- name: github.com/orcaman/concurrent-map
+  version: 2ae17bc4c860c83513ee50feb9746f3e50d7515d
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
+  subpackages:
+  - assert
+- name: github.com/syndtr/goleveldb
+  version: 3c5717caf1475fd25964109a0fc640bd150fce43
+  subpackages:
+  - leveldb
+  - leveldb/cache
+  - leveldb/comparer
+  - leveldb/errors
+  - leveldb/filter
+  - leveldb/iterator
+  - leveldb/journal
+  - leveldb/memdb
+  - leveldb/opt
+  - leveldb/storage
+  - leveldb/table
+  - leveldb/util
+testImports: []
