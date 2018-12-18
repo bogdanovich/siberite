@@ -270,7 +270,7 @@ func (q *Queue) Path() string {
 }
 
 func (q *Queue) open() error {
-	if validQueueNameRegex.MatchString(q.Name) {
+	if validQueueNameRegex.MatchString(q.Name) || len(q.Name) < 1 {
 		return ErrInvalidName
 	}
 

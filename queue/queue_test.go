@@ -46,6 +46,11 @@ func Test_ValidQueueName(t *testing.T) {
 	assert.EqualError(t, err, "queue: name is not alphanumeric")
 	q.Drop()
 
+	invalidQueueName = ""
+	q, err = Open(invalidQueueName, dir, &options)
+	assert.EqualError(t, err, "queue: name is not alphanumeric")
+	q.Drop()
+
 	validQueueNames := []string{"test-name-1", "test_name_2"}
 	for _, queueName := range validQueueNames {
 		q, err = Open(queueName, dir, &options)
