@@ -1,49 +1,40 @@
 # Siberite
 [![License][License-Image]][License-Url] [![Build][Build-Status-Image]][Build-Status-Url] [![Release][Release-Image]][Release-Url]
-[![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/bogdanovich/siberite)
 
-Siberite is a simple leveldb backed message queue server<br>
+Siberite is a simple LevelDB-backed message queue server<br>
 ([twitter/kestrel](https://github.com/twitter/kestrel), [wavii/darner](https://github.com/wavii/darner) rewritten in Go).
 
-Siberite is a very simple message queue server.  Unlike in-memory servers such as [redis](http://redis.io/), Siberite is
-designed to handle queues much larger than what can be held in RAM.  And unlike enterprise queue servers such as
-[RabbitMQ](http://www.rabbitmq.com/), Siberite keeps all messages **out of process**,
-using [goleveldb](https://github.com/syndtr/goleveldb) as a persistent storage.
+Siberite is a simple message queue server.  Unlike in-memory servers like [Redis](http://redis.io/), Siberite is
+designed to handle queues much larger than what can fit in RAM. And unlike enterprise-level servers such as
+[RabbitMQ](http://www.rabbitmq.com/), Siberite stores all messages **out of process**,
+using [goleveldb](https://github.com/syndtr/goleveldb) for persistent storage.
 
-The result is a durable queue server that uses a small amount of in-resident memory regardless of queue size.
+The result is a durable queue server that uses minimal in-resident memory, regardless of the queue size.
 
-Siberite is based on Robey Pointer's [Kestrel](https://github.com/robey/kestrel) - simple, distributed message queue.
+Siberite is based on Robey Pointer's [Kestrel](https://github.com/robey/kestrel), a simple, distributed message queue.
 Like Kestrel, Siberite follows the "No talking! Shhh!" approach to distributed queues:
-A single Siberite server has a set of queues identified by name.  Each queue is a strictly-ordered FIFO,
-and querying from a fleet of Siberite servers provides a loosely-ordered queue.
-Siberite also supports Kestrel's two-phase reliable fetch: if a client disconnects before confirming it handled
-a message, the message will be handed to the next client.
+A single Siberite server maintains a set of queues identified by name. Each queue operates as a strictly-ordered FIFO,
+while querying from multiple Siberite servers results in a loosely-ordered distributed queue.
+Siberite also supports Kestrel's two-phase reliable fetch. If a client disconnects before confirming
+that it has processed a message, the message will be handed off to the next client.
 
-Compared to Kestrel and Darner, Siberite is easier to build, maintain and distribute.
-It uses an order of magnitude less memory compared to Kestrel, and has an ability
-to consume queue multiple times (using durable cursors feature).
+Compared to Kestrel and Darner, Siberite is easier to build, maintain, and distribute.
+It consumes significantly less memory than Kestrel and offers the ability
+to consume a queue multiple times using durable cursors.
 
 ## Features
 
-1. Siberite clients can consume single source queue multiple times using `get <queue>.<cursor_name>` syntax.
+1. **Durable cursors for multiple reads**
 
-  - Usually, with `get <queue>` syntax, returned message gets expired and deleted from queue.
-  - With cursor syntax `get <queue>.<cursor_name>`, a durable
-    cursor gets initialized. It shifts forward with every read without deleting
-    any messages in the source queue. Number of cursors per queue is not limited.
-  - If you continue reads from the source queue with usual syntax again, siberite will continue
-    deleting already serverd messages from the head of the queue. Any existing cursor that is
-    internally points to an already expired message will start serving messages
-    from the current queue head on the next read.
-  - Durable cursors are also support two-phase reliable reads. All failed reliable
-    reads for each cursor get stored in cursor's own small persistent queue and get
-    served to other cursor readers.
+  - Siberite clients can consume a single source queue multiple times using the get <queue>.<cursor_name> syntax.
+  - Normally, with the get <queue> syntax, the returned message is expired and deleted from the queue.
+  - Using the cursor syntax get <queue>.<cursor_name>, a durable cursor is initialized. It advances with every read without deleting messages from the source queue. There is no limit on the number of cursors per queue.
+  - If you resume reading from the queue using the standard syntax, Siberite will continue deleting already-served messages from the queue head. Any existing cursor that points to an expired message will restart reading from the current queue head on the next read.
+  - Durable cursors also support two-phase reliable reads. Failed reads for each cursor are stored in the cursor’s persistent queue and served to other cursor readers.
 
-2. Fanout queues
+2. **Fanout queues**
 
-  - Siberite allows you to insert new message into multiple queues at once
-    by using the following syntax `set <queue>+<another_queue>+<third_queue> ...`
-
+  - Siberite allows inserting a message into multiple queues simultaneously using the following syntax: `set <queue>+<another_queue>+<third_queue> ...`
 
 
 ## Benchmarks
