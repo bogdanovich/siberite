@@ -25,7 +25,7 @@ func (c *Controller) Delete(input []string) error {
 	}
 
 	if err != nil {
-		log.Printf("Command %s: %s ", cmd, err.Error())
+		log.Printf("Command %s: %s ", cmd.Name, err.Error())
 		return NewError(commonError, err)
 	}
 	fmt.Fprint(c.rw.Writer, endMessage)
