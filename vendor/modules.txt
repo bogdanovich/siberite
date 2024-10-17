@@ -1,0 +1,38 @@
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/dustin/randbo v0.0.0-20140428231429-7f1b564ca724
+## explicit
+github.com/dustin/randbo
+# github.com/golang/snappy v0.0.4
+## explicit
+github.com/golang/snappy
+# github.com/kklis/gomemcache v0.0.0-20150824185358-6d04ba58f087
+## explicit
+github.com/kklis/gomemcache
+# github.com/orcaman/concurrent-map v1.0.0
+## explicit
+github.com/orcaman/concurrent-map
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/stretchr/testify v1.9.0
+## explicit; go 1.17
+github.com/stretchr/testify/assert
+# github.com/syndtr/goleveldb v1.0.0
+## explicit
+github.com/syndtr/goleveldb/leveldb
+github.com/syndtr/goleveldb/leveldb/cache
+github.com/syndtr/goleveldb/leveldb/comparer
+github.com/syndtr/goleveldb/leveldb/errors
+github.com/syndtr/goleveldb/leveldb/filter
+github.com/syndtr/goleveldb/leveldb/iterator
+github.com/syndtr/goleveldb/leveldb/journal
+github.com/syndtr/goleveldb/leveldb/memdb
+github.com/syndtr/goleveldb/leveldb/opt
+github.com/syndtr/goleveldb/leveldb/storage
+github.com/syndtr/goleveldb/leveldb/table
+github.com/syndtr/goleveldb/leveldb/util
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
