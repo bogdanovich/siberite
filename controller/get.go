@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
@@ -55,7 +56,17 @@ func (c *Controller) get(cmd *Command) error {
 		log.Println(cmd, err)
 		return NewError(commonError, err)
 	}
-	value, _ := q.GetNext()
+    value, _ := q.GetNext()
+    if len(value) == 0 && cmd.TimeoutMs > 0 {
+        deadline := time.Now().Add(time.Duration(cmd.TimeoutMs) * time.Millisecond)
+        for time.Now().Before(deadline) {
+            time.Sleep(10 * time.Millisecond)
+            value, _ = q.GetNext()
+            if len(value) > 0 {
+                break
+            }
+        }
+    }
 	if len(value) > 0 {
 		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(value))
 		fmt.Fprintf(c.rw.Writer, "%s\r\n", value)
@@ -117,10 +128,23 @@ func (c *Controller) peek(cmd *Command) error {
 }
 
 func parseGetCommand(input []string) *Command {
-	cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
-	if strings.Contains(input[1], "t=") {
-		input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
-	}
+    cmd := &Command{Name: input[0], QueueName: input[1], SubCommand: ""}
+    if strings.Contains(input[1], "t=") {
+        // parse last t= value and strip from queue spec
+        matches := timeoutRegexp.FindAllString(input[1], -1)
+        if len(matches) > 0 {
+            last := matches[len(matches)-1] // e.g., "t=5000"
+            n := 0
+            s := last[2:]
+            for i := 0; i < len(s); i++ {
+                c := s[i]
+                if c < '0' || c > '9' { n = 0; break }
+                n = n*10 + int(c-'0')
+            }
+            cmd.TimeoutMs = n
+        }
+        input[1] = timeoutRegexp.ReplaceAllString(input[1], "")
+    }
 	tokens := make([]string, 3)
 	if strings.Contains(input[1], "/") {
 		tokens = strings.SplitN(input[1], "/", 2)

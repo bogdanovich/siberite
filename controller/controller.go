@@ -68,6 +68,7 @@ type Command struct {
 	ConsumerGroup string
 	FanoutQueues  []string
 	DataSize      int
+        TimeoutMs     int
 }
 
 // NewSession creates and initializes new controller
