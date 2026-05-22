@@ -20,7 +20,7 @@ var (
 	ErrIDOutOfBounds = errors.New("queue: ID is out of bounds")
 
 	// ErrInvalidName is returned when queue name is not valid
-	ErrInvalidName = errors.New("queue: name is not alphanumeric")
+	ErrInvalidName = errors.New("queue: has invalid characters")
 
 	// ErrNameTooLong means that queue name is longer then allowed limit
 	ErrNameTooLong = errors.New("queue: name is too long")
@@ -35,7 +35,7 @@ var (
 
 const levelDBOpenFilesCacheCapacity = 64
 
-var validQueueNameRegex = regexp.MustCompile(`[^a-zA-Z0-9_\-\:]+`)
+var validQueueNameRegex = regexp.MustCompile(`[^a-zA-Z0-9_\-\:\#\$\%\,\\\~\@\*\&\!]+`)
 
 // Consumer represents a queue consumer
 type Consumer interface {

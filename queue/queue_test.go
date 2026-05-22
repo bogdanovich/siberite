@@ -43,12 +43,12 @@ func TestMain(m *testing.M) {
 func Test_ValidQueueName(t *testing.T) {
 	invalidQueueName := "%@#*(&($%@#"
 	q, err := Open(invalidQueueName, dir, &options)
-	assert.EqualError(t, err, "queue: name is not alphanumeric")
+	assert.EqualError(t, err, "queue: has invalid characters")
 	q.Drop()
 
 	invalidQueueName = ""
 	q, err = Open(invalidQueueName, dir, &options)
-	assert.EqualError(t, err, "queue: name is not alphanumeric")
+	assert.EqualError(t, err, "queue: has invalid characters")
 	q.Drop()
 
 	validQueueNames := []string{"test-name-1", "test_name_2"}
@@ -62,7 +62,7 @@ func Test_ValidQueueName(t *testing.T) {
 func Test_Open(t *testing.T) {
 	invalidQueueName := "%@#*(&($%@#"
 	q, err := Open(invalidQueueName, dir, &options)
-	assert.EqualError(t, err, "queue: name is not alphanumeric")
+	assert.EqualError(t, err, "queue: has invalid characters")
 	q.Drop()
 
 	invalidQueueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
