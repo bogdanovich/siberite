@@ -11,6 +11,9 @@ import (
 // END
 func (c *Controller) Flush(input []string) error {
 	cmd := parseCommand(input)
+	if cmd == nil {
+		return ErrInvalidCommand
+	}
 
 	q, err := c.getConsumer(cmd)
 	if err != nil {

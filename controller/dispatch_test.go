@@ -150,3 +150,28 @@ func Test_Controller_Dispatch(t *testing.T) {
 
 	mockTCPConn.WriteBuffer.Reset()
 }
+
+func Test_Controller_DispatchMalformedCommands(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 0)
+	defer cleanupControllerTest(repo)
+
+	testCases := []struct {
+		command  string
+		response string
+		err      string
+	}{
+		{"\r\n", "ERROR Unknown command\r\n", "ERROR Unknown command"},
+		{"get\r\n", "CLIENT_ERROR Invalid command\r\n", "CLIENT_ERROR Invalid command"},
+		{"delete\r\n", "CLIENT_ERROR Invalid command\r\n", "CLIENT_ERROR Invalid command"},
+		{"flush\r\n", "CLIENT_ERROR Invalid command\r\n", "CLIENT_ERROR Invalid command"},
+		{"set test 0 0 -1\r\n", "CLIENT_ERROR Invalid <bytes> number\r\n", "CLIENT_ERROR Invalid <bytes> number"},
+	}
+
+	for _, tc := range testCases {
+		fmt.Fprintf(&mockTCPConn.ReadBuffer, tc.command)
+		err = controller.Dispatch()
+		assert.EqualError(t, err, tc.err, tc.command)
+		assert.Equal(t, tc.response, mockTCPConn.WriteBuffer.String(), tc.command)
+		mockTCPConn.WriteBuffer.Reset()
+	}
+}

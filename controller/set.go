@@ -84,6 +84,9 @@ func parseSetCommand(input []string) (*Command, error) {
 	if err != nil {
 		return nil, ErrInvalidDataSize
 	}
+	if totalBytes < 0 {
+		return nil, ErrInvalidDataSize
+	}
 
 	cmd := &Command{Name: input[0], QueueName: input[1], DataSize: totalBytes}
 

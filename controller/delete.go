@@ -11,6 +11,9 @@ import (
 // END
 func (c *Controller) Delete(input []string) error {
 	cmd := parseCommand(input)
+	if cmd == nil {
+		return ErrInvalidCommand
+	}
 
 	var err error
 	if cmd.ConsumerGroup != "" {

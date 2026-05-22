@@ -18,6 +18,9 @@ var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
 // END
 func (c *Controller) Get(input []string) error {
 	var err error
+	if len(input) != 2 {
+		return ErrInvalidCommand
+	}
 	cmd := parseGetCommand(input)
 
 	switch cmd.SubCommand {

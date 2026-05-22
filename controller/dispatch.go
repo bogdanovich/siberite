@@ -14,7 +14,10 @@ func (c *Controller) Dispatch() error {
 	}
 
 	c.conn.SetDeadline(time.Time{})
-	command := strings.Split(strings.Trim(message, " \r\n"), " ")
+	command := strings.Fields(strings.Trim(message, " \r\n"))
+	if len(command) == 0 {
+		return c.UnknownCommand()
+	}
 	command[0] = strings.ToLower(command[0])
 
 	switch command[0] {
