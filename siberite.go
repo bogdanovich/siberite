@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -26,6 +25,11 @@ func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	// Create data directory if it doesn't exist
+	if err := os.MkdirAll(*dataDir, 0755); err != nil {
+		log.Fatalln(err)
+	}
+
 	service := service.New(*dataDir)
 
 	if *versionFlag {
@@ -35,7 +39,7 @@ func main() {
 
 	// Write a PID file if its requested
 	if len(*pidPath) > 0 {
-		if err := ioutil.WriteFile(*pidPath, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+		if err := os.WriteFile(*pidPath, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
 			log.Fatalln(err)
 		}
 		defer os.Remove(*pidPath)
@@ -48,7 +52,7 @@ func main() {
 
 	go service.Serve(laddr)
 
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	log.Println(<-ch)
 
