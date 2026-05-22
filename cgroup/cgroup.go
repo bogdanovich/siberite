@@ -141,7 +141,7 @@ func (cg *ConsumerGroup) Flush() error {
 	return err
 }
 
-//Delete deletes all the data associated with consumer group
+// Delete deletes all the data associated with consumer group
 func (cg *ConsumerGroup) Delete() error {
 	cg.Lock()
 	defer cg.Unlock()
@@ -172,7 +172,7 @@ func (cg *ConsumerGroup) initialize() error {
 func (cg *ConsumerGroup) loadCursor() error {
 	value, err := cg.storage.Get(cg.cursorKey, nil)
 	if err != nil {
-		if err.Error() == "leveldb: not found" {
+		if errors.Is(err, leveldb.ErrNotFound) {
 			return cg.updateCursor(cg.source.Head())
 		}
 		return err
