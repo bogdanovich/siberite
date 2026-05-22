@@ -78,12 +78,12 @@ func (c *Controller) get(cmd *Command) error {
 }
 
 func (c *Controller) getClose(cmd *Command) error {
-	q, err := c.getConsumer(cmd)
-	if err != nil {
-		log.Println(cmd, err)
-		return NewError(commonError, err)
-	}
 	if c.currentValue != nil {
+		q, err := c.getConsumer(c.currentCommand)
+		if err != nil {
+			log.Println(c.currentCommand, err)
+			return NewError(commonError, err)
+		}
 		q.Stats().UpdateOpenReads(-1)
 		c.setCurrentState(nil, nil)
 	}

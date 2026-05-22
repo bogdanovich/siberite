@@ -174,6 +174,29 @@ func Test_Controller_GetOpen(t *testing.T) {
 
 }
 
+func Test_Controller_GetCloseClosesCurrentTransaction(t *testing.T) {
+	repo, controller, mockTCPConn := setupControllerTest(t, 1)
+	defer cleanupControllerTest(repo)
+
+	err = controller.Get([]string{"get", "test/open"})
+	assert.NoError(t, err)
+	mockTCPConn.WriteBuffer.Reset()
+
+	q, err := repo.GetQueue("test")
+	assert.NoError(t, err)
+	other, err := repo.GetQueue("other")
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, 1, q.Stats().OpenReads)
+	assert.EqualValues(t, 0, other.Stats().OpenReads)
+
+	err = controller.Get([]string{"get", "other/close"})
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, 0, q.Stats().OpenReads)
+	assert.EqualValues(t, 0, other.Stats().OpenReads)
+}
+
 // Initialize test queue with 2 items
 // get queueName/open = value
 // FinishSession (disconnect)
