@@ -530,5 +530,5 @@ func Test_initializeShared(t *testing.T) {
 func Test_queuePath(t *testing.T) {
 	q, _ := Open("test_queue", dir, &options)
 	defer q.Drop()
-	assert.Equal(t, "./test_data/test_queue", q.Path())
+	assert.Equal(t, "test_data/test_queue", q.Path())
 }

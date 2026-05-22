@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sync"
 
@@ -274,7 +275,7 @@ func (q *Queue) Stats() *Stats {
 
 // Path returns leveldb database file path
 func (q *Queue) Path() string {
-	return q.DataDir + "/" + q.Name
+	return filepath.Join(q.DataDir, q.Name)
 }
 
 func (q *Queue) open() error {

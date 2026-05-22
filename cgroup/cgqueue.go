@@ -2,6 +2,7 @@ package cgroup
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/bogdanovich/siberite/queue"
@@ -21,7 +22,7 @@ type CGQueue struct {
 
 // CGQueueOpen opens a queue with multiple consumer groups
 func CGQueueOpen(name string, dataDir string) (*CGQueue, error) {
-	q := &CGQueue{Name: name, dataDir: dataDir + "/" + name}
+	q := &CGQueue{Name: name, dataDir: filepath.Join(dataDir, name)}
 	return q, q.initialize()
 }
 
@@ -57,6 +58,6 @@ func (q *CGQueue) initialize() error {
 		return err
 	}
 
-	q.CGManager, err = NewCGManager(q.dataDir+"/_.metadata", q.Queue)
+	q.CGManager, err = NewCGManager(filepath.Join(q.dataDir, "_.metadata"), q.Queue)
 	return err
 }

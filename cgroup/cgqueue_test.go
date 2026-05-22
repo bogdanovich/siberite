@@ -116,7 +116,7 @@ func Test_CGQueue_Path(t *testing.T) {
 	q, err := setupCGQueue(t, 10)
 	defer cleanupCGQueue(q)
 	assert.NoError(t, err)
-	assert.Equal(t, "./test_data/cgqueue", q.Path())
+	assert.Equal(t, "test_data/cgqueue", q.Path())
 }
 
 func Test_CGQueue_Drop(t *testing.T) {
