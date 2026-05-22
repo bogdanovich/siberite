@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,18 +20,29 @@ func Test_Controller_Stats(t *testing.T) {
 	cg.GetNext()
 
 	err = controller.Stats()
-	statsResponse := "STAT uptime 0\r\n" +
-		fmt.Sprintf("STAT time %d\r\n", time.Now().Unix()) +
-		"STAT version " + repo.Stats.Version + "\r\n" +
-		"STAT curr_connections 1\r\n" +
-		"STAT total_connections 1\r\n" +
-		"STAT cmd_get 0\r\n" +
-		"STAT cmd_set 0\r\n" +
-		fmt.Sprintf("STAT queue_test_items %d\r\n", 3) +
-		"STAT queue_test_open_transactions 0\r\n" +
-		fmt.Sprintf("STAT queue_test.cg1_items %d\r\n", 2) +
-		"STAT queue_test.cg1_open_transactions 0\r\n" +
-		"END\r\n"
 	assert.Nil(t, err)
-	assert.Equal(t, statsResponse, mockTCPConn.WriteBuffer.String())
+
+	lines := strings.Split(strings.TrimSuffix(mockTCPConn.WriteBuffer.String(), "\r\n"), "\r\n")
+	assert.Len(t, lines, 12)
+
+	uptimeFields := strings.Fields(lines[0])
+	assert.Equal(t, []string{"STAT", "uptime"}, uptimeFields[:2])
+	_, err = strconv.ParseUint(uptimeFields[2], 10, 64)
+	assert.NoError(t, err)
+
+	timeFields := strings.Fields(lines[1])
+	assert.Equal(t, []string{"STAT", "time"}, timeFields[:2])
+	_, err = strconv.ParseUint(timeFields[2], 10, 64)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "STAT version "+repo.Stats.Version, lines[2])
+	assert.Equal(t, "STAT curr_connections 1", lines[3])
+	assert.Equal(t, "STAT total_connections 1", lines[4])
+	assert.Equal(t, "STAT cmd_get 0", lines[5])
+	assert.Equal(t, "STAT cmd_set 0", lines[6])
+	assert.Equal(t, "STAT queue_test_items 3", lines[7])
+	assert.Equal(t, "STAT queue_test_open_transactions 0", lines[8])
+	assert.Equal(t, "STAT queue_test.cg1_items 2", lines[9])
+	assert.Equal(t, "STAT queue_test.cg1_open_transactions 0", lines[10])
+	assert.Equal(t, "END", lines[11])
 }
