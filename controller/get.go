@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 	"sync/atomic"
+
+	"github.com/bogdanovich/siberite/queue"
 )
 
 var timeoutRegexp = regexp.MustCompile(`(t\=\d+)\/?`)
@@ -58,7 +61,10 @@ func (c *Controller) get(cmd *Command) error {
 		log.Println(cmd, err)
 		return NewError(commonError, err)
 	}
-	value, _ := q.GetNext()
+	value, err := q.GetNext()
+	if err != nil && !isNoValueQueueError(err) {
+		return NewError(commonError, err)
+	}
 	if len(value) > 0 {
 		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(value))
 		fmt.Fprintf(c.rw.Writer, "%s\r\n", value)
@@ -110,13 +116,20 @@ func (c *Controller) peek(cmd *Command) error {
 		log.Println(cmd, err)
 		return NewError(commonError, err)
 	}
-	value, _ := q.Peek()
+	value, err := q.Peek()
+	if err != nil && !isNoValueQueueError(err) {
+		return NewError(commonError, err)
+	}
 	if len(value) > 0 {
 		fmt.Fprintf(c.rw.Writer, "VALUE %s 0 %d\r\n", cmd.QueueName, len(value))
 		fmt.Fprintf(c.rw.Writer, "%s\r\n", value)
 	}
 	atomic.AddUint64(&c.repo.Stats.CmdGet, 1)
 	return nil
+}
+
+func isNoValueQueueError(err error) bool {
+	return errors.Is(err, queue.ErrIsEmpty) || errors.Is(err, queue.ErrIDOutOfBounds)
 }
 
 func parseGetCommand(input []string) *Command {

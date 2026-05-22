@@ -63,6 +63,7 @@ func (s *Service) Serve(laddr *net.TCPAddr) {
 				continue
 			}
 			log.Println(err)
+			continue
 		}
 		s.wg.Add(1)
 		go s.handleConnection(conn)
