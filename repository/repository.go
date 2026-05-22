@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/orcaman/concurrent-map"
@@ -128,21 +129,21 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"uptime", fmt.Sprintf("%d", currentTime-repo.Stats.StartTime)})
 	stats = append(stats, StatItem{"time", fmt.Sprintf("%d", currentTime)})
 	stats = append(stats, StatItem{"version", fmt.Sprintf("%s", repo.Stats.Version)})
-	stats = append(stats, StatItem{"curr_connections", fmt.Sprintf("%d", repo.Stats.CurrentConnections)})
-	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", repo.Stats.TotalConnections)})
-	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", repo.Stats.CmdGet)})
-	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", repo.Stats.CmdSet)})
+	stats = append(stats, StatItem{"curr_connections", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.CurrentConnections))})
+	stats = append(stats, StatItem{"total_connections", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.TotalConnections))})
+	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.CmdGet))})
+	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.CmdSet))})
 
 	var q *cgroup.CGQueue
 	var cg *cgroup.ConsumerGroup
 	for pair := range repo.storage.IterBuffered() {
 		q = pair.Val.(*cgroup.CGQueue)
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
-		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReads)})
+		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReadsValue())})
 		for pair := range q.ConsumerGroupIterator() {
 			cg = pair.Val.(*cgroup.ConsumerGroup)
 			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
-			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReads)})
+			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReadsValue())})
 		}
 	}
 	return stats

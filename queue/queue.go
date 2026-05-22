@@ -140,10 +140,18 @@ func (q *Queue) Flush() error {
 }
 
 // Head returns current head offset of the queue
-func (q *Queue) Head() uint64 { return q.head }
+func (q *Queue) Head() uint64 {
+	q.RLock()
+	defer q.RUnlock()
+	return q.head
+}
 
 // Tail returns current tail offset of the queue
-func (q *Queue) Tail() uint64 { return q.tail }
+func (q *Queue) Tail() uint64 {
+	q.RLock()
+	defer q.RUnlock()
+	return q.tail
+}
 
 // Length returns current length of the queue
 func (q *Queue) Length() uint64 {
