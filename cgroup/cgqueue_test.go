@@ -90,7 +90,7 @@ func Test_CGQueue_ConsumerGroups(t *testing.T) {
 
 	for item := range q.ConsumerGroupIterator() {
 		assert.NotNil(t, item.Val)
-		cg := item.Val.(queue.Consumer)
+		cg := queue.Consumer(item.Val)
 		assert.EqualValues(t, 1, cg.Length())
 		err := cg.PutBack([]byte("2"))
 		assert.NoError(t, err)

@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/dustin/randbo v0.0.0-20140428231429-7f1b564ca724
 	github.com/kklis/gomemcache v0.0.0-20150824185358-6d04ba58f087
-	github.com/orcaman/concurrent-map v1.0.0
 	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.0
 )

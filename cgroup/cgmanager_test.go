@@ -61,7 +61,7 @@ func Test_CGManager_initialize(t *testing.T) {
 
 	for item := range m.ConsumerGroupIterator() {
 		assert.NotNil(t, item.Val)
-		cg := item.Val.(*ConsumerGroup)
+		cg := item.Val
 		i, _ := strconv.Atoi(item.Key)
 		assert.EqualValues(t, 10-i, cg.Length())
 		i++
@@ -94,7 +94,7 @@ func Test_CGManager_ConsumerGroupAndIteration(t *testing.T) {
 
 	for item := range m.ConsumerGroupIterator() {
 		assert.NotNil(t, item.Val)
-		cg := item.Val.(queue.Consumer)
+		cg := queue.Consumer(item.Val)
 		assert.EqualValues(t, 8, cg.Length())
 		value, err := cg.GetNext()
 		assert.NoError(t, err)

@@ -4,7 +4,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/orcaman/concurrent-map"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -14,18 +13,24 @@ import (
 
 // CGManager represents multiple consumer group manager
 type CGManager struct {
-	cmap        cmap.ConcurrentMap
+	sync.RWMutex
+	groups      map[string]*ConsumerGroup
 	storage     *leveldb.DB
 	storagePath string
 	source      *queue.Queue
-	sync.Mutex
+}
+
+// ConsumerGroupItem is a snapshot item for an existing consumer group.
+type ConsumerGroupItem struct {
+	Key string
+	Val *ConsumerGroup
 }
 
 // NewCGManager initializes new consumer group manager
 func NewCGManager(storagePath string,
 	source *queue.Queue) (*CGManager, error) {
 
-	m := &CGManager{cmap: cmap.New(), storagePath: storagePath, source: source}
+	m := &CGManager{groups: make(map[string]*ConsumerGroup), storagePath: storagePath, source: source}
 	var err error
 	m.storage, err = leveldb.OpenFile(storagePath, &opt.Options{})
 	if err != nil {
@@ -40,13 +45,13 @@ func (m *CGManager) ConsumerGroup(name string) (*ConsumerGroup, error) {
 	if !ok {
 		m.Lock()
 		defer m.Unlock()
-		if cg, ok = m.get(name); !ok {
+		if cg, ok = m.groups[name]; !ok {
 			var err error
 			cg, err = NewConsumerGroup(name, m.source, m.storage)
 			if err != nil {
 				return nil, err
 			}
-			m.cmap.Set(name, cg)
+			m.groups[name] = cg
 		}
 	}
 	return cg, nil
@@ -54,7 +59,9 @@ func (m *CGManager) ConsumerGroup(name string) (*ConsumerGroup, error) {
 
 // DeleteConsumerGroup deletes specified consumer group
 func (m *CGManager) DeleteConsumerGroup(name string) error {
-	cg, ok := m.get(name)
+	m.Lock()
+	defer m.Unlock()
+	cg, ok := m.groups[name]
 	if !ok {
 		return nil
 	}
@@ -62,27 +69,54 @@ func (m *CGManager) DeleteConsumerGroup(name string) error {
 	if err != nil {
 		return err
 	}
-	m.cmap.Remove(name)
+	delete(m.groups, name)
 	return nil
 }
 
 // ConsumerGroupIterator iterates through existing consumer groups
-func (m *CGManager) ConsumerGroupIterator() <-chan cmap.Tuple {
-	return m.cmap.IterBuffered()
+func (m *CGManager) ConsumerGroupIterator() <-chan ConsumerGroupItem {
+	items := m.consumerGroupItems()
+	ch := make(chan ConsumerGroupItem, len(items))
+	for _, item := range items {
+		ch <- item
+	}
+	close(ch)
+	return ch
+}
+
+// ConsumerGroups returns a snapshot of existing consumer groups.
+func (m *CGManager) ConsumerGroups() []*ConsumerGroup {
+	items := m.consumerGroupItems()
+	groups := make([]*ConsumerGroup, 0, len(items))
+	for _, item := range items {
+		groups = append(groups, item.Val)
+	}
+	return groups
 }
 
 // Close consumer group manager
 func (m *CGManager) Close() {
 	m.storage.Close()
-	m.cmap = nil
+	m.Lock()
+	defer m.Unlock()
+	m.groups = nil
 }
 
 func (m *CGManager) get(key string) (*ConsumerGroup, bool) {
-	val, ok := m.cmap.Get(key)
-	if ok {
-		return val.(*ConsumerGroup), ok
+	m.RLock()
+	defer m.RUnlock()
+	val, ok := m.groups[key]
+	return val, ok
+}
+
+func (m *CGManager) consumerGroupItems() []ConsumerGroupItem {
+	m.RLock()
+	defer m.RUnlock()
+	items := make([]ConsumerGroupItem, 0, len(m.groups))
+	for key, cg := range m.groups {
+		items = append(items, ConsumerGroupItem{Key: key, Val: cg})
 	}
-	return nil, ok
+	return items
 }
 
 func (m *CGManager) initialize() error {

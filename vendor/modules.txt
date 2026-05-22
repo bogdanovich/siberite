@@ -10,9 +10,6 @@ github.com/golang/snappy
 # github.com/kklis/gomemcache v0.0.0-20150824185358-6d04ba58f087
 ## explicit
 github.com/kklis/gomemcache
-# github.com/orcaman/concurrent-map v1.0.0
-## explicit
-github.com/orcaman/concurrent-map
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib

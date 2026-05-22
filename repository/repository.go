@@ -8,8 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/orcaman/concurrent-map"
-
 	"github.com/bogdanovich/siberite/cgroup"
 )
 
@@ -18,8 +16,8 @@ const Version = "siberite-0.6.4"
 
 // QueueRepository represents a repository of queues
 type QueueRepository struct {
-	sync.Mutex
-	storage  cmap.ConcurrentMap
+	sync.RWMutex
+	storage  map[string]*cgroup.CGQueue
 	DataPath string
 	Stats    *Stats
 }
@@ -47,7 +45,7 @@ func NewRepository(dataDir string) (*QueueRepository, error) {
 		return nil, err
 	}
 	stats := &Stats{Version, time.Now().Unix(), 0, 0, 0, 0}
-	repo := QueueRepository{storage: cmap.New(), DataPath: dataPath, Stats: stats}
+	repo := QueueRepository{storage: make(map[string]*cgroup.CGQueue), DataPath: dataPath, Stats: stats}
 	return &repo, repo.initialize()
 }
 
@@ -63,7 +61,7 @@ func (repo *QueueRepository) GetQueue(key string) (*cgroup.CGQueue, error) {
 
 	// now that we have acquired the lock, recheck to see if someone else
 	// already managed to create the queue while we were waiting on the lock
-	if q, ok := repo.get(key); ok {
+	if q, ok := repo.storage[key]; ok {
 		return q, nil
 	}
 
@@ -72,23 +70,25 @@ func (repo *QueueRepository) GetQueue(key string) (*cgroup.CGQueue, error) {
 	if err != nil {
 		return nil, err
 	}
-	repo.storage.Set(key, q)
+	repo.storage[key] = q
 	return q, nil
 }
 
 // DeleteQueue deletes a queue from the repository
 func (repo *QueueRepository) DeleteQueue(key string) error {
-	if q, ok := repo.get(key); ok {
+	repo.Lock()
+	defer repo.Unlock()
+	if q, ok := repo.storage[key]; ok {
 		q.Drop()
-		repo.storage.Remove(key)
+		delete(repo.storage, key)
 	}
 	return nil
 }
 
 // DeleteAllQueues deletes all queues from the repo
 func (repo *QueueRepository) DeleteAllQueues() error {
-	for pair := range repo.storage.IterBuffered() {
-		if err := repo.DeleteQueue(pair.Key); err != nil {
+	for key := range repo.snapshot() {
+		if err := repo.DeleteQueue(key); err != nil {
 			return err
 		}
 	}
@@ -97,12 +97,8 @@ func (repo *QueueRepository) DeleteAllQueues() error {
 
 // FlushAllQueues removes all items from all the queues
 func (repo *QueueRepository) FlushAllQueues() error {
-	for pair := range repo.storage.IterBuffered() {
-		q, err := repo.GetQueue(pair.Key)
-		if err != nil {
-			return err
-		}
-		if err = q.Flush(); err != nil {
+	for _, q := range repo.snapshot() {
+		if err := q.Flush(); err != nil {
 			return err
 		}
 	}
@@ -111,11 +107,7 @@ func (repo *QueueRepository) FlushAllQueues() error {
 
 // CloseAllQueues closes all queues
 func (repo *QueueRepository) CloseAllQueues() error {
-	for pair := range repo.storage.IterBuffered() {
-		q, err := repo.GetQueue(pair.Key)
-		if err != nil {
-			return err
-		}
+	for _, q := range repo.snapshot() {
 		q.Close()
 	}
 	return nil
@@ -133,14 +125,10 @@ func (repo *QueueRepository) FullStats() []StatItem {
 	stats = append(stats, StatItem{"cmd_get", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.CmdGet))})
 	stats = append(stats, StatItem{"cmd_set", fmt.Sprintf("%d", atomic.LoadUint64(&repo.Stats.CmdSet))})
 
-	var q *cgroup.CGQueue
-	var cg *cgroup.ConsumerGroup
-	for pair := range repo.storage.IterBuffered() {
-		q = pair.Val.(*cgroup.CGQueue)
+	for _, q := range repo.snapshot() {
 		stats = append(stats, StatItem{"queue_" + q.Name + "_items", fmt.Sprintf("%d", q.Length())})
 		stats = append(stats, StatItem{"queue_" + q.Name + "_open_transactions", fmt.Sprintf("%d", q.Stats().OpenReadsValue())})
-		for pair := range q.ConsumerGroupIterator() {
-			cg = pair.Val.(*cgroup.ConsumerGroup)
+		for _, cg := range q.ConsumerGroups() {
 			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_items", fmt.Sprintf("%d", cg.Length())})
 			stats = append(stats, StatItem{"queue_" + q.Name + "." + cg.Name + "_open_transactions", fmt.Sprintf("%d", cg.Stats().OpenReadsValue())})
 		}
@@ -150,7 +138,9 @@ func (repo *QueueRepository) FullStats() []StatItem {
 
 // Count returns a total number of queues
 func (repo *QueueRepository) Count() int {
-	return repo.storage.Count()
+	repo.RLock()
+	defer repo.RUnlock()
+	return len(repo.storage)
 }
 
 func (repo *QueueRepository) initialize() error {
@@ -172,8 +162,18 @@ func (repo *QueueRepository) initialize() error {
 }
 
 func (repo *QueueRepository) get(key string) (*cgroup.CGQueue, bool) {
-	if val, ok := repo.storage.Get(key); ok {
-		return val.(*cgroup.CGQueue), ok
+	repo.RLock()
+	defer repo.RUnlock()
+	val, ok := repo.storage[key]
+	return val, ok
+}
+
+func (repo *QueueRepository) snapshot() map[string]*cgroup.CGQueue {
+	repo.RLock()
+	defer repo.RUnlock()
+	queues := make(map[string]*cgroup.CGQueue, len(repo.storage))
+	for key, q := range repo.storage {
+		queues[key] = q
 	}
-	return nil, false
+	return queues
 }
