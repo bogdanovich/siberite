@@ -2,8 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -155,7 +154,7 @@ func (repo *QueueRepository) Count() int {
 }
 
 func (repo *QueueRepository) initialize() error {
-	dirs, err := ioutil.ReadDir(repo.DataPath)
+	dirs, err := os.ReadDir(repo.DataPath)
 	if err != nil {
 		return fmt.Errorf("error opening data directory (%s): %s",
 			repo.DataPath, err.Error())
@@ -163,12 +162,10 @@ func (repo *QueueRepository) initialize() error {
 	for _, dir := range dirs {
 		if dir.IsDir() {
 			// queue init
-			q, err := repo.GetQueue(dir.Name())
+			_, err := repo.GetQueue(dir.Name())
 			if err != nil {
-				log.Fatalf("queue %s...%s", dir.Name(), err.Error())
+				return fmt.Errorf("queue %s: %w", dir.Name(), err)
 			}
-			log.Printf("queue \"%s\": size %d, head %d, tail %d",
-				dir.Name(), q.Length(), q.Head(), q.Tail())
 		}
 	}
 	return nil
